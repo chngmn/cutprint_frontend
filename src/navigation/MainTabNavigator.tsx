@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -5,6 +6,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import AlbumScreen from '../screens/AlbumScreen';
+import CutSelectionScreen from '../screens/CutSelectionScreen';
+import CameraScreen from '../screens/CameraScreen'; // Import the new screen
 import { Ionicons } from '@expo/vector-icons';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -13,11 +16,22 @@ const Stack = createStackNavigator();
 
 type RootStackParamList = {
   Login: undefined;
-  // 필요시 다른 스크린 추가
+  // Add other screens here if needed
 };
 
 type MainTabNavigatorProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Login'>;
+};
+
+// New Stack Navigator for the Home tab
+const HomeStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="CutSelection" component={CutSelectionScreen} />
+      <Stack.Screen name="Camera" component={CameraScreen} />
+    </Stack.Navigator>
+  );
 };
 
 const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
@@ -53,7 +67,7 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack} // Use the HomeStack navigator
         options={{ title: '홈' }}
       />
       <Tab.Screen
@@ -71,3 +85,4 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
 };
 
 export default MainTabNavigator;
+
