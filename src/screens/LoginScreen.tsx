@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
@@ -14,12 +14,15 @@ type LoginScreenProps = {
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Cutprint</Text>
+      <View style={styles.centerContent}>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} />
+        <Text style={styles.title}>Cutprint</Text>
+      </View>
       <TouchableOpacity
         style={styles.loginButton}
         onPress={() => navigation.replace('Main')}
       >
-        <Text style={styles.loginButtonText}>로그인</Text>
+        <Text style={styles.loginButtonText}>Log in</Text>
       </TouchableOpacity>
     </View>
   );
@@ -28,25 +31,43 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  centerContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    width: '100%',
+  },
+  logo: {
+    width: 121,
+    height: 121,
+    marginBottom: 16, // 기존 40에서 16으로 줄임
   },
   title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    marginBottom: 50,
+    fontSize: 45,
+    fontWeight: '700',
+    fontFamily: 'Pretendard',
+    color: '#000',
   },
   loginButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 15,
-    paddingHorizontal: 80,
-    borderRadius: 25,
+    backgroundColor: '#599EF1',
+    width: 226,
+    height: 51,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 40,
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 25,
+    fontWeight: '400',
+    fontFamily: 'Pretendard',
   },
 });
 
