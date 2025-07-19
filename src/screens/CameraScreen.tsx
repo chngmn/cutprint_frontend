@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import CustomText from '../components/CustomText';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useNavigation,
   useRoute,
@@ -155,6 +157,10 @@ const CameraScreen = () => {
     setCountdown(0);
   };
 
+  const handleAddTime = () => {
+    setCountdown((prev) => prev + 5);
+  };
+
   if (!permission) {
     // Permissions are still loading
     return <View />;
@@ -184,12 +190,28 @@ const CameraScreen = () => {
               >{`${shotCount + 1}/8`}</CustomText>
             </>
           )}
-          <TouchableOpacity
-            style={styles.quickShotButton}
-            onPress={handleQuickShot}
-          >
-            <CustomText style={styles.quickShotText}>바로찍기</CustomText>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.addTimeButton}
+              onPress={handleAddTime}
+            >
+              <MaterialCommunityIcons
+                name="clock-plus-outline"
+                size={28}
+                color="white"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickShotButton}
+              onPress={handleQuickShot}
+            >
+              <MaterialCommunityIcons
+                name={'camera-enhance-outline' as any}
+                size={28}
+                color="white"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </CameraView>
     </View>
@@ -210,10 +232,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  buttonRow: {
+    position: 'absolute',
+    bottom: 100,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   countdownText: {
     position: 'absolute',
     top: 60,
-    left: 20,
+    left: 30,
     fontSize: 64,
     fontWeight: 'bold',
     color: 'white',
@@ -223,29 +254,31 @@ const styles = StyleSheet.create({
   },
   shotCountText: {
     position: 'absolute',
-    top: 60,
-    right: 20,
-    fontSize: 24,
+    top: 70,
+    right: 25,
+    fontSize: 25,
     fontWeight: 'bold',
     color: 'white',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 5,
+  },
+  addTimeButton: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 24,
   },
   quickShotButton: {
-    position: 'absolute',
-    bottom: 100,
-    alignSelf: 'center',
     backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderRadius: 25,
-  },
-  quickShotText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
