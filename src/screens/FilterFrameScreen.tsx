@@ -9,6 +9,19 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import CustomText from '../components/CustomText';
+import { StackNavigationProp } from '@react-navigation/stack';
+import ViewShot from 'react-native-view-shot';
+import { useRef } from 'react';
+
+type FilterFrameStackParamList = {
+  PreviewAndSave: { imageUri: string };
+  FilterFrame: { selectedPhotos: string[]; cutType: string };
+};
+
+type FilterFrameNavigationProp = StackNavigationProp<
+  FilterFrameStackParamList,
+  'FilterFrame'
+>;
 
 // Dummy data for filters (replace with actual filter logic later)
 const filters = [
@@ -42,7 +55,7 @@ const getRequiredPhotoCount = (cutType: string): number => {
 
 const FilterFrameScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<FilterFrameNavigationProp>();
   const { selectedPhotos, cutType } = route.params as {
     selectedPhotos: string[];
     cutType: string;
@@ -53,6 +66,8 @@ const FilterFrameScreen = () => {
 
   const requiredCount = getRequiredPhotoCount(cutType);
   const slots = Array.from({ length: requiredCount });
+
+  const viewShotRef = useRef<ViewShot>(null);
 
   const getFrameStyle = () => {
     switch (cutType) {
@@ -169,50 +184,59 @@ const FilterFrameScreen = () => {
       </View>
 
       <View style={styles.previewSection}>
-        <View
-          style={[
-            styles.framePreviewContainer,
-            getFrameStyle(),
-            {
-              borderColor: currentFrameColor,
-              backgroundColor: currentFrameColor,
-            },
-          ]}
-        >
-          {slots.map((_, index) => (
-            <View key={index} style={[styles.previewPhotoSlot, getSlotStyle()]}>
-              {selectedPhotos[index] ? (
-                <View style={{ position: 'relative' }}>
-                  <Image
-                    source={{ uri: selectedPhotos[index] }}
-                    style={styles.previewImage}
-                  />
-                  {selectedFilter !== 'original' && (
-                    <View style={[styles.filterOverlay, getFilterOverlay()]} />
+        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
+          <View>
+            <View
+              style={[
+                styles.framePreviewContainer,
+                getFrameStyle(),
+                {
+                  borderColor: currentFrameColor,
+                  backgroundColor: currentFrameColor,
+                },
+              ]}
+            >
+              {slots.map((_, index) => (
+                <View
+                  key={index}
+                  style={[styles.previewPhotoSlot, getSlotStyle()]}
+                >
+                  {selectedPhotos[index] ? (
+                    <View style={{ position: 'relative' }}>
+                      <Image
+                        source={{ uri: selectedPhotos[index] }}
+                        style={styles.previewImage}
+                      />
+                      {selectedFilter !== 'original' && (
+                        <View
+                          style={[styles.filterOverlay, getFilterOverlay()]}
+                        />
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.placeholder} />
                   )}
                 </View>
-              ) : (
-                <View style={styles.placeholder} />
-              )}
+              ))}
             </View>
-          ))}
-        </View>
-        <View
-          style={[
-            styles.cutprintLabel,
-            getCutprintLabelStyle(),
-            { backgroundColor: currentFrameColor },
-          ]}
-        >
-          <CustomText
-            style={[
-              styles.cutprintText,
-              { color: getContrastTextColor(currentFrameColor) },
-            ]}
-          >
-            cutprint
-          </CustomText>
-        </View>
+            <View
+              style={[
+                styles.cutprintLabel,
+                getCutprintLabelStyle(),
+                { backgroundColor: currentFrameColor },
+              ]}
+            >
+              <CustomText
+                style={[
+                  styles.cutprintText,
+                  { color: getContrastTextColor(currentFrameColor) },
+                ]}
+              >
+                cutprint
+              </CustomText>
+            </View>
+          </View>
+        </ViewShot>
       </View>
 
       <View style={styles.selectionSection}>
@@ -239,7 +263,12 @@ const FilterFrameScreen = () => {
 
       <TouchableOpacity
         style={styles.nextButton}
-        onPress={() => console.log('Next')}
+        onPress={async () => {
+          if (viewShotRef.current?.capture) {
+            const uri = await viewShotRef.current.capture();
+            navigation.navigate('PreviewAndSave', { imageUri: uri });
+          }
+        }}
       >
         <CustomText style={styles.nextButtonText}>다음</CustomText>
       </TouchableOpacity>
@@ -347,7 +376,6 @@ const styles = StyleSheet.create({
   cutprintLabel: {
     backgroundColor: '#000000',
     height: 30,
-    marginBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },

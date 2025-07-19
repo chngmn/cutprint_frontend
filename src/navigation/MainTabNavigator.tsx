@@ -29,8 +29,6 @@ type MainTabNavigatorProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Login'>;
 };
 
-import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
-import FilterFrameScreen from '../screens/FilterFrameScreen';
 import CameraGuideScreen from '../screens/CameraGuideScreen';
 
 const HomeStack = () => {
@@ -50,8 +48,6 @@ const HomeStack = () => {
           headerShown: false,
         }}
       />
-      <Stack.Screen name="PhotoSelection" component={PhotoSelectionScreen} />
-      <Stack.Screen name="FilterFrame" component={FilterFrameScreen} />
     </Stack.Navigator>
   );
 };
