@@ -5,71 +5,26 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
-// 네비게이터 param 타입 정의
 type RootStackParamList = {
   Camera: undefined;
-  // 다른 스크린들...
 };
 
 type CutLayoutProps = {
-  type: 'vertical-4' | 'grid-4' | 'grid-6';
+  imageSource: any; // Adjust type as per your image source format
+  label: string;
   onPress: () => void;
 };
 
-const CutLayout = ({ type, onPress }: CutLayoutProps) => {
-  const renderLayout = () => {
-    switch (type) {
-      case 'vertical-4':
-        return (
-          <View style={styles.layoutContainer_for_vertical_4}>
-            <View style={[styles.layoutBox, styles.verticalBox]} />
-            <View style={[styles.layoutBox, styles.verticalBox]} />
-            <View style={[styles.layoutBox, styles.verticalBox]} />
-            <View style={[styles.layoutBox, styles.verticalBox]} />
-          </View>
-        );
-      case 'grid-4':
-        return (
-          <View
-            style={[
-              styles.layoutContainer,
-              { flexDirection: 'row', flexWrap: 'wrap' },
-            ]}
-          >
-            <View style={[styles.layoutBox, styles.grid4Box]} />
-            <View style={[styles.layoutBox, styles.grid4Box]} />
-            <View style={[styles.layoutBox, styles.grid4Box]} />
-            <View style={[styles.layoutBox, styles.grid4Box]} />
-          </View>
-        );
-      case 'grid-6':
-        return (
-          <View
-            style={[
-              styles.layoutContainer,
-              { flexDirection: 'row', flexWrap: 'wrap' },
-            ]}
-          >
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-            <View style={[styles.layoutBox, styles.grid6Box]} />
-          </View>
-        );
-      default:
-        return null;
-    }
-  };
-
+const CutLayout = ({ imageSource, label, onPress }: CutLayoutProps) => {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.cutOption}>
-      {renderLayout()}
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      <Image source={imageSource} style={styles.cardImage} />
+      <Text style={styles.cardLabel}>{label}</Text>
     </TouchableOpacity>
   );
 };
@@ -84,18 +39,23 @@ const CutSelectionScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>원하는 컷을 선택하세요</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>원하는 프레임을 선택하세요</Text>
+      </View>
       <View style={styles.optionsContainer}>
         <CutLayout
-          type="vertical-4"
+          imageSource={require('../../assets/4cut_original.png')}
+          label=""
           onPress={() => handleCutSelect('Vertical 4-cut')}
         />
         <CutLayout
-          type="grid-4"
+          imageSource={require('../../assets/4cut_2x2.png')}
+          label=""
           onPress={() => handleCutSelect('4-cut grid')}
         />
         <CutLayout
-          type="grid-6"
+          imageSource={require('../../assets/6cut.png')}
+          label=""
           onPress={() => handleCutSelect('6-cut grid')}
         />
       </View>
@@ -106,57 +66,56 @@ const CutSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  header: {
+    width: '100%',
+    paddingTop: 60,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 40,
+    color: '#343A40',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#868E96',
+    marginTop: 8,
   },
   optionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
     width: '100%',
+    paddingHorizontal: 10,
   },
-  cutOption: {
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    width: 110, // Fixed width for consistency
   },
-  layoutContainer: {
-    width: 100,
-    height: 150,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    overflow: 'hidden',
+  cardImage: {
+    width: 90,
+    height: 140,
+    resizeMode: 'contain',
+    marginBottom: 12,
   },
-  layoutContainer_for_vertical_4: {
-    width: 50,
-    height: 150,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  layoutBox: {
-    backgroundColor: '#f0f0f0',
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#ccc',
-  },
-  verticalBox: {
-    flex: 1,
-  },
-  grid4Box: {
-    width: '50%',
-    height: '50%',
-  },
-  grid6Box: {
-    width: '50%',
-    height: '33.33%',
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
   },
 });
 

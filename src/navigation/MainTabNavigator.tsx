@@ -1,13 +1,12 @@
-
 import React from 'react';
-import { TouchableOpacity, Text } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import AlbumScreen from '../screens/AlbumScreen';
 import CutSelectionScreen from '../screens/CutSelectionScreen';
-import CameraScreen from '../screens/CameraScreen'; // Import the new screen
+import CameraScreen from '../screens/CameraScreen';
 import { Ionicons } from '@expo/vector-icons';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -16,14 +15,12 @@ const Stack = createStackNavigator();
 
 type RootStackParamList = {
   Login: undefined;
-  // Add other screens here if needed
 };
 
 type MainTabNavigatorProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Login'>;
 };
 
-// New Stack Navigator for the Home tab
 const HomeStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -36,7 +33,6 @@ const HomeStack = () => {
 
 const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
   const handleLogout = () => {
-    // Navigate back to the Login screen
     navigation.replace('Login');
   };
 
@@ -54,22 +50,35 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
             iconName = focused ? 'images' : 'images-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={28} color={color} />;
         },
-        tabBarActiveTintColor: '#007bff',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#4867B7',
+        tabBarInactiveTintColor: '#D1D5DB',
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          elevation: 0, // for Android
+          shadowOpacity: 0, // for iOS
+        },
+        headerStyle: {
+          backgroundColor: '#FFFFFF',
+          elevation: 0, // for Android
+          shadowOpacity: 0, // for iOS
+          borderBottomWidth: 0,
+        },
+        headerTitleStyle: {
+          fontSize: 20,
+          fontWeight: 'bold',
+        },
         headerRight: () => (
           <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
-            <Ionicons name="log-out-outline" size={24} color="#000" />
+            <Ionicons name="log-out-outline" size={24} color="#333" />
           </TouchableOpacity>
         ),
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeStack} // Use the HomeStack navigator
-        options={{ title: '홈' }}
-      />
+      <Tab.Screen name="Home" component={HomeStack} options={{ title: '홈' }} />
       <Tab.Screen
         name="Friends"
         component={FriendsScreen}
@@ -85,4 +94,3 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
 };
 
 export default MainTabNavigator;
-
