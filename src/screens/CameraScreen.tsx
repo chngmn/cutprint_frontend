@@ -1,16 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, AppState, Button } from 'react-native';
-import { Camera, CameraView } from 'expo-camera';
-import { useNavigation } from '@react-navigation/native';
-import { useCameraPermissions } from 'expo-camera';
+import { View, StyleSheet, Alert, AppState, Button } from 'react-native';
+import CustomText from '../components/CustomText';
+import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type HomeStackParamList = {
+  HomeMain: undefined;
+  CutSelection: undefined;
+  Camera: { cutType: string };
+  PhotoSelection: { photos: string[]; cutType: string };
+};
+
+type CameraScreenNavigationProp = StackNavigationProp<
+  HomeStackParamList,
+  'Camera'
+>;
 
 const CameraScreen = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const [countdown, setCountdown] = useState<number>(5);
   const [shotCount, setShotCount] = useState<number>(0);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const cameraRef = useRef<CameraView>(null);
-  const navigation = useNavigation();
+  const navigation = useNavigation<CameraScreenNavigationProp>();
+  const route = useRoute();
+  const { cutType } = route.params as { cutType: string };
 
   // Request camera permission on mount
   useEffect(() => {
@@ -52,23 +68,29 @@ const CameraScreen = () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
-        console.log(`Photo ${shotCount + 1} taken: ${photo?.uri}`);
+        if (photo) {
+          const newPhotos = [...capturedPhotos, photo.uri];
+          setCapturedPhotos(newPhotos);
+          console.log(`Photo ${shotCount + 1} taken: ${photo.uri}`);
 
-        const nextShotCount = shotCount + 1;
-        setShotCount(nextShotCount);
+          const nextShotCount = shotCount + 1;
+          setShotCount(nextShotCount);
 
-        if (nextShotCount < 8) {
-          setCountdown(5); // Reset for next shot
-        } else {
-          setIsCapturing(false);
-          Alert.alert('촬영 완료', '8장의 사진 촬영이 모두 끝났습니다.', [
-            { text: 'OK', onPress: () => navigation.goBack() },
-          ]);
+          if (nextShotCount < 8) {
+            setCountdown(5); // Reset for next shot
+          } else {
+            setIsCapturing(false);
+            navigation.navigate('PhotoSelection', {
+              photos: newPhotos,
+              cutType: cutType,
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to take picture:', error);
         Alert.alert('오류', '사진 촬영에 실패했습니다.');
         setIsCapturing(false);
+        navigation.goBack();
       }
     }
   };
@@ -82,9 +104,9 @@ const CameraScreen = () => {
     // Permissions are not granted
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>
+        <CustomText style={{ textAlign: 'center' }}>
           We need your permission to show the camera
-        </Text>
+        </CustomText>
         <Button onPress={requestPermission} title="grant permission" />
       </View>
     );
@@ -96,8 +118,8 @@ const CameraScreen = () => {
         <View style={styles.overlay}>
           {isCapturing && shotCount < 8 && (
             <>
-              <Text style={styles.countdownText}>{countdown}</Text>
-              <Text style={styles.shotCountText}>{`${shotCount + 1}/8`}</Text>
+              <CustomText style={styles.countdownText}>{countdown}</CustomText>
+              <CustomText style={styles.shotCountText}>{`${shotCount + 1}/8`}</CustomText>
             </>
           )}
         </View>

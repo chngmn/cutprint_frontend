@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -15,8 +16,8 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.headerTitle}>Cutprint</Text>
-        <Text style={styles.subHeader}>언제 어디서든, 간편하게 네컷</Text>
+        <CustomText style={styles.headerTitle}>Cutprint</CustomText>
+        <CustomText style={styles.subHeader}>언제 어디서든, 간편하게 네컷</CustomText>
       </View>
       <View style={styles.cardContainer}>
         <TouchableOpacity
@@ -24,13 +25,13 @@ const HomeScreen = () => {
           onPress={() => navigation.navigate('CutSelection')}
         >
           <Ionicons name="people-outline" size={48} color="#000000" />
-          <Text style={styles.cardTitle}>같은 공간</Text>
-          <Text style={styles.cardDescription}>친구와 함께 찍기</Text>
+          <CustomText style={styles.cardTitle}>같은 공간</CustomText>
+          <CustomText style={styles.cardDescription}>친구와 함께 찍기</CustomText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.card}>
           <Ionicons name="wifi-outline" size={48} color="#000000" />
-          <Text style={styles.cardTitle}>멀리서도</Text>
-          <Text style={styles.cardDescription}>온라인으로 함께 찍기</Text>
+          <CustomText style={styles.cardTitle}>멀리서도</CustomText>
+          <CustomText style={styles.cardDescription}>온라인으로 함께 찍기</CustomText>
         </TouchableOpacity>
       </View>
     </View>

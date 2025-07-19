@@ -17,9 +17,18 @@ type RootStackParamList = {
   Login: undefined;
 };
 
+type HomeStackParamList = {
+  HomeMain: undefined;
+  CutSelection: undefined;
+  Camera: { cutType: string };
+  PhotoSelection: { photos: string[]; cutType: string };
+};
+
 type MainTabNavigatorProps = {
   navigation: StackNavigationProp<RootStackParamList, 'Login'>;
 };
+
+import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
 
 const HomeStack = () => {
   return (
@@ -27,6 +36,7 @@ const HomeStack = () => {
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="CutSelection" component={CutSelectionScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
+      <Stack.Screen name="PhotoSelection" component={PhotoSelectionScreen} />
     </Stack.Navigator>
   );
 };

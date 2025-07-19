@@ -1,17 +1,17 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   Image,
 } from 'react-native';
+import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
-  Camera: undefined;
+  Camera: { cutType: string };
 };
 
 type CutLayoutProps = {
@@ -35,7 +35,7 @@ const CutLayout = ({
       onPress={onPress}
     >
       <Image source={imageSource} style={imageStyle} />
-      <Text style={styles.optionLabel}>{label}</Text>
+      <CustomText style={styles.optionLabel}>{label}</CustomText>
     </TouchableOpacity>
   );
 };
@@ -45,13 +45,13 @@ const CutSelectionScreen = () => {
 
   const handleCutSelect = (cutType: string) => {
     console.log(`${cutType} selected`);
-    navigation.navigate('Camera');
+    navigation.navigate('Camera', { cutType });
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>원하는 프레임을 선택하세요</Text>
+        <CustomText style={styles.title}>원하는 프레임을 선택하세요</CustomText>
       </View>
       <View style={styles.optionsContainer}>
         <View style={styles.topRow}>
