@@ -122,13 +122,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   // 기존 "Log in" 버튼 핸들러 (디자인 유지 및 기능 분리)
-  const handleRegularLogin = () => {
-    // 이 버튼은 Google 로그인과 별개로 작동합니다.
-    // 여기에 일반 로그인 로직 (예: 이메일/비밀번호 입력 폼으로 이동)을 추가하거나
-    // 임시로 Main 화면으로 이동하도록 할 수 있습니다.
-    Alert.alert('알림', '일반 로그인 버튼 클릭 (현재는 Main 화면으로 이동)');
-    navigation.replace('Main'); // 기존 동작 유지
-  };
+  // const handleRegularLogin = () => {
+  //   // 이 버튼은 Google 로그인과 별개로 작동합니다.
+  //   // 여기에 일반 로그인 로직 (예: 이메일/비밀번호 입력 폼으로 이동)을 추가하거나
+  //   // 임시로 Main 화면으로 이동하도록 할 수 있습니다.
+  //   Alert.alert('알림', '일반 로그인 버튼 클릭 (현재는 Main 화면으로 이동)');
+  //   navigation.replace('Main'); // 기존 동작 유지
+  // };
 
   // Google 로그인 버튼 핸들러
   const handleGoogleSignIn = () => {
@@ -148,12 +148,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       </View>
 
       {/* 기존 "Log in" 버튼 유지 */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.loginButton}
         onPress={handleRegularLogin} // 기존 핸들러 연결
       >
         <Text style={styles.loginButtonText}>Log in</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Google 로그인 버튼 추가 */}
       <TouchableOpacity
