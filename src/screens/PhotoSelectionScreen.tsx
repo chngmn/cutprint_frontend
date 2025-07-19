@@ -10,6 +10,20 @@ import {
   Alert,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type HomeStackParamList = {
+  HomeMain: undefined;
+  CutSelection: undefined;
+  Camera: { cutType: string };
+  PhotoSelection: { photos: string[]; cutType: string };
+  FilterFrame: { selectedPhotos: string[]; cutType: string };
+};
+
+type PhotoSelectionNavigationProp = StackNavigationProp<
+  HomeStackParamList,
+  'PhotoSelection'
+>;
 
 const getRequiredPhotoCount = (cutType: string): number => {
   switch (cutType) {
@@ -59,27 +73,45 @@ const FramePreview = ({
     }
   };
 
+  const getCutprintLabelStyle = () => {
+    switch (cutType) {
+      case 'Vertical 4-cut':
+        return { width: 70 };
+      case '4-cut grid':
+        return { width: 140 };
+      case '6-cut grid':
+        return { width: 140 };
+      default:
+        return { width: 70 };
+    }
+  };
+
   return (
-    <View style={[styles.framePreviewContainer, getFrameStyle()]}>
-      {slots.map((_, index) => (
-        <View key={index} style={[styles.photoSlot, getSlotStyle()]}>
-          {selectedPhotos[index] ? (
-            <Image
-              source={{ uri: selectedPhotos[index] }}
-              style={styles.previewImage}
-            />
-          ) : (
-            <View style={styles.placeholder} />
-          )}
-        </View>
-      ))}
-    </View>
+    <>
+      <View style={[styles.framePreviewContainer, getFrameStyle()]}>
+        {slots.map((_, index) => (
+          <View key={index} style={[styles.photoSlot, getSlotStyle()]}>
+            {selectedPhotos[index] ? (
+              <Image
+                source={{ uri: selectedPhotos[index] }}
+                style={styles.previewImage}
+              />
+            ) : (
+              <View style={styles.placeholder} />
+            )}
+          </View>
+        ))}
+      </View>
+      <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+        <Text style={styles.cutprintText}>cutprint</Text>
+      </View>
+    </>
   );
 };
 
 const PhotoSelectionScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<PhotoSelectionNavigationProp>();
   const { photos, cutType } = route.params as {
     photos: string[];
     cutType: string;
@@ -100,8 +132,7 @@ const PhotoSelectionScreen = () => {
 
   const handleCompletion = () => {
     if (selectedPhotos.length === requiredCount) {
-      Alert.alert('완료', '다음 단계로 이동합니다.');
-      // Navigate to the next screen (e.g., editing or saving)
+      navigation.navigate('FilterFrame', { selectedPhotos, cutType });
     } else {
       Alert.alert('알림', `사진을 ${requiredCount}장 선택해야 합니다.`);
     }
@@ -198,7 +229,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#000000',
+    borderColor: '#ffffff',
   },
   selectionText: {
     color: 'white',
@@ -213,10 +244,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   framePreviewContainer: {
-    marginBottom: 20,
-    backgroundColor: 'white',
-    padding: 5,
-    borderRadius: 6,
+    marginBottom: 0,
+    backgroundColor: 'black',
+    padding: 2,
+    borderRadius: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -229,7 +260,7 @@ const styles = StyleSheet.create({
   },
   frameGrid4: {
     width: 140,
-    height: 140,
+    height: 210,
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
@@ -245,22 +276,29 @@ const styles = StyleSheet.create({
   slotVertical: {
     width: '100%',
     height: '25%',
+    borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
   },
   slotGrid4: {
     width: '50%',
     height: '50%',
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
   },
   slotGrid6: {
     width: '50%',
     height: '33.33%',
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
   },
   previewImage: {
     width: '100%',
@@ -268,7 +306,7 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     flex: 1,
-    backgroundColor: '#E9ECEF',
+    backgroundColor: '#ffffff',
   },
   completeButton: {
     width: '100%',
@@ -277,7 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeButtonActive: {
-    backgroundColor: '#4867B7',
+    backgroundColor: '#000000',
   },
   completeButtonInactive: {
     backgroundColor: '#CED4DA',
@@ -285,6 +323,19 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  cutprintLabel: {
+    backgroundColor: '#000000',
+    height: 30,
+    width: 140,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cutprintText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

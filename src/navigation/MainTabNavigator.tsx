@@ -22,6 +22,7 @@ type HomeStackParamList = {
   CutSelection: undefined;
   Camera: { cutType: string };
   PhotoSelection: { photos: string[]; cutType: string };
+  FilterFrame: { selectedPhotos: string[]; cutType: string };
 };
 
 type MainTabNavigatorProps = {
@@ -29,14 +30,22 @@ type MainTabNavigatorProps = {
 };
 
 import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
+import FilterFrameScreen from '../screens/FilterFrameScreen';
 
 const HomeStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="CutSelection" component={CutSelectionScreen} />
-      <Stack.Screen name="Camera" component={CameraScreen} />
+      <Stack.Screen
+        name="Camera"
+        component={CameraScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen name="PhotoSelection" component={PhotoSelectionScreen} />
+      <Stack.Screen name="FilterFrame" component={FilterFrameScreen} />
     </Stack.Navigator>
   );
 };

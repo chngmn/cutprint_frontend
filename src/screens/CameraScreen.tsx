@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Alert, AppState, Button } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  AppState,
+  Button,
+  TouchableOpacity,
+} from 'react-native';
 import CustomText from '../components/CustomText';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type HomeStackParamList = {
@@ -25,6 +36,33 @@ const CameraScreen = () => {
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation<CameraScreenNavigationProp>();
+
+  // Hide tab bar and header when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.setOptions({
+          tabBarStyle: { display: 'none' },
+          headerShown: false,
+        });
+      }
+
+      return () => {
+        if (parent) {
+          parent.setOptions({
+            tabBarStyle: {
+              backgroundColor: '#FFFFFF',
+              borderTopWidth: 0,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            headerShown: true,
+          });
+        }
+      };
+    }, [navigation]),
+  );
   const route = useRoute();
   const { cutType } = route.params as { cutType: string };
 
@@ -95,6 +133,10 @@ const CameraScreen = () => {
     }
   };
 
+  const handleQuickShot = () => {
+    setCountdown(0);
+  };
+
   if (!permission) {
     // Permissions are still loading
     return <View />;
@@ -119,9 +161,17 @@ const CameraScreen = () => {
           {isCapturing && shotCount < 8 && (
             <>
               <CustomText style={styles.countdownText}>{countdown}</CustomText>
-              <CustomText style={styles.shotCountText}>{`${shotCount + 1}/8`}</CustomText>
+              <CustomText
+                style={styles.shotCountText}
+              >{`${shotCount + 1}/8`}</CustomText>
             </>
           )}
+          <TouchableOpacity
+            style={styles.quickShotButton}
+            onPress={handleQuickShot}
+          >
+            <CustomText style={styles.quickShotText}>바로찍기</CustomText>
+          </TouchableOpacity>
         </View>
       </CameraView>
     </View>
@@ -143,12 +193,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countdownText: {
-    fontSize: 96,
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    fontSize: 64,
     fontWeight: 'bold',
     color: 'white',
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
+    textShadowRadius: 5,
   },
   shotCountText: {
     position: 'absolute',
@@ -161,6 +214,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
+  },
+  quickShotButton: {
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  quickShotText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

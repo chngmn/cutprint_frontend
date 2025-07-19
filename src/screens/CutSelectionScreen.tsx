@@ -10,32 +10,94 @@ import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
+const getRequiredPhotoCount = (cutType: string): number => {
+  switch (cutType) {
+    case 'Vertical 4-cut':
+    case '4-cut grid':
+      return 4;
+    case '6-cut grid':
+      return 6;
+    default:
+      return 4;
+  }
+};
+
+const FramePreview = ({ cutType }: { cutType: string }) => {
+  const requiredCount = getRequiredPhotoCount(cutType);
+  const slots = Array.from({ length: requiredCount });
+
+  const getFrameStyle = () => {
+    switch (cutType) {
+      case 'Vertical 4-cut':
+        return styles.frameVertical;
+      case '4-cut grid':
+        return styles.frameGrid4;
+      case '6-cut grid':
+        return styles.frameGrid6;
+      default:
+        return styles.frameVertical;
+    }
+  };
+
+  const getSlotStyle = () => {
+    switch (cutType) {
+      case 'Vertical 4-cut':
+        return styles.slotVertical;
+      case '4-cut grid':
+        return styles.slotGrid4;
+      case '6-cut grid':
+        return styles.slotGrid6;
+      default:
+        return styles.slotVertical;
+    }
+  };
+
+  const getCutprintLabelStyle = () => {
+    switch (cutType) {
+      case 'Vertical 4-cut':
+        return { width: 60 };
+      case '4-cut grid':
+        return { width: 120 };
+      case '6-cut grid':
+        return { width: 120 };
+      default:
+        return { width: 60 };
+    }
+  };
+
+  return (
+    <>
+      <View style={[styles.framePreviewContainer, getFrameStyle()]}>
+        {slots.map((_, index) => (
+          <View key={index} style={[styles.photoSlot, getSlotStyle()]}>
+            <View style={styles.placeholder} />
+          </View>
+        ))}
+      </View>
+      <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+        <CustomText style={styles.cutprintText}>cutprint</CustomText>
+      </View>
+    </>
+  );
+};
+
 type RootStackParamList = {
   Camera: { cutType: string };
 };
 
 type CutLayoutProps = {
-  imageSource: any;
-  label: string;
+  cutType: string;
   onPress: () => void;
   containerStyle?: object;
-  imageStyle?: object;
 };
 
-const CutLayout = ({
-  imageSource,
-  label,
-  onPress,
-  containerStyle,
-  imageStyle,
-}: CutLayoutProps) => {
+const CutLayout = ({ cutType, onPress, containerStyle }: CutLayoutProps) => {
   return (
     <TouchableOpacity
       style={[styles.optionContainer, containerStyle]}
       onPress={onPress}
     >
-      <Image source={imageSource} style={imageStyle} />
-      <CustomText style={styles.optionLabel}>{label}</CustomText>
+      <FramePreview cutType={cutType} />
     </TouchableOpacity>
   );
 };
@@ -56,23 +118,17 @@ const CutSelectionScreen = () => {
       <View style={styles.optionsContainer}>
         <View style={styles.topRow}>
           <CutLayout
-            imageSource={require('../../assets/4cut_original.png')}
-            label=""
+            cutType="Vertical 4-cut"
             onPress={() => handleCutSelect('Vertical 4-cut')}
-            imageStyle={styles.topImage}
           />
           <CutLayout
-            imageSource={require('../../assets/4cut_2x2.png')}
-            label=""
+            cutType="4-cut grid"
             onPress={() => handleCutSelect('4-cut grid')}
-            imageStyle={styles.topImage}
           />
         </View>
         <CutLayout
-          imageSource={require('../../assets/6cut.png')}
-          label=""
+          cutType="6-cut grid"
           onPress={() => handleCutSelect('6-cut grid')}
-          imageStyle={styles.bottomImage}
         />
       </View>
     </SafeAreaView>
@@ -127,6 +183,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#495057',
     marginTop: 15, // Added margin top for spacing
+  },
+  framePreviewContainer: {
+    marginBottom: 0,
+    backgroundColor: 'black',
+    padding: 2,
+    borderRadius: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  frameVertical: {
+    width: 60,
+    height: 180,
+  },
+  frameGrid4: {
+    width: 120,
+    height: 160,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  frameGrid6: {
+    width: 120,
+    height: 160,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  photoSlot: {
+    backgroundColor: '#E9ECEF',
+  },
+  slotVertical: {
+    width: '100%',
+    height: '25%',
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
+  },
+  slotGrid4: {
+    width: '50%',
+    height: '50%',
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
+  },
+  slotGrid6: {
+    width: '50%',
+    height: '33.33%',
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: '#000000',
+  },
+  placeholder: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  cutprintLabel: {
+    backgroundColor: '#000000',
+    height: 20,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cutprintText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
 
