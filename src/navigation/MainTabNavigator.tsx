@@ -31,12 +31,18 @@ type MainTabNavigatorProps = {
 
 import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
 import FilterFrameScreen from '../screens/FilterFrameScreen';
+import CameraGuideScreen from '../screens/CameraGuideScreen';
 
 const HomeStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="CutSelection" component={CutSelectionScreen} />
+      <Stack.Screen
+        name="CameraGuide"
+        component={CameraGuideScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Camera"
         component={CameraScreen}

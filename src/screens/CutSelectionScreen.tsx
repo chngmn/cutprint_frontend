@@ -83,6 +83,7 @@ const FramePreview = ({ cutType }: { cutType: string }) => {
 
 type RootStackParamList = {
   Camera: { cutType: string };
+  CameraGuide: { cutType: string };
 };
 
 type CutLayoutProps = {
@@ -106,8 +107,7 @@ const CutSelectionScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleCutSelect = (cutType: string) => {
-    console.log(`${cutType} selected`);
-    navigation.navigate('Camera', { cutType });
+    navigation.navigate('CameraGuide', { cutType });
   };
 
   return (
