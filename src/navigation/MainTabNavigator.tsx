@@ -52,7 +52,7 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
 
           return <Ionicons name={iconName} size={28} color={color} />;
         },
-        tabBarActiveTintColor: '#4867B7',
+        tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: '#D1D5DB',
         tabBarShowLabel: false,
         tabBarStyle: {

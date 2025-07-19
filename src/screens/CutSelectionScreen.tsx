@@ -15,16 +15,27 @@ type RootStackParamList = {
 };
 
 type CutLayoutProps = {
-  imageSource: any; // Adjust type as per your image source format
+  imageSource: any;
   label: string;
   onPress: () => void;
+  containerStyle?: object;
+  imageStyle?: object;
 };
 
-const CutLayout = ({ imageSource, label, onPress }: CutLayoutProps) => {
+const CutLayout = ({
+  imageSource,
+  label,
+  onPress,
+  containerStyle,
+  imageStyle,
+}: CutLayoutProps) => {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-      <Image source={imageSource} style={styles.cardImage} />
-      <Text style={styles.cardLabel}>{label}</Text>
+    <TouchableOpacity
+      style={[styles.optionContainer, containerStyle]}
+      onPress={onPress}
+    >
+      <Image source={imageSource} style={imageStyle} />
+      <Text style={styles.optionLabel}>{label}</Text>
     </TouchableOpacity>
   );
 };
@@ -43,20 +54,25 @@ const CutSelectionScreen = () => {
         <Text style={styles.title}>원하는 프레임을 선택하세요</Text>
       </View>
       <View style={styles.optionsContainer}>
-        <CutLayout
-          imageSource={require('../../assets/4cut_original.png')}
-          label=""
-          onPress={() => handleCutSelect('Vertical 4-cut')}
-        />
-        <CutLayout
-          imageSource={require('../../assets/4cut_2x2.png')}
-          label=""
-          onPress={() => handleCutSelect('4-cut grid')}
-        />
+        <View style={styles.topRow}>
+          <CutLayout
+            imageSource={require('../../assets/4cut_original.png')}
+            label=""
+            onPress={() => handleCutSelect('Vertical 4-cut')}
+            imageStyle={styles.topImage}
+          />
+          <CutLayout
+            imageSource={require('../../assets/4cut_2x2.png')}
+            label=""
+            onPress={() => handleCutSelect('4-cut grid')}
+            imageStyle={styles.topImage}
+          />
+        </View>
         <CutLayout
           imageSource={require('../../assets/6cut.png')}
           label=""
           onPress={() => handleCutSelect('6-cut grid')}
+          imageStyle={styles.bottomImage}
         />
       </View>
     </SafeAreaView>
@@ -71,8 +87,8 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 80,
+    paddingBottom: 50,
     alignItems: 'center',
   },
   title: {
@@ -80,42 +96,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#343A40',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#868E96',
-    marginTop: 8,
-  },
   optionsContainer: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingHorizontal: 10,
+    marginBottom: 30, // Increased margin for more space
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 10,
+  optionContainer: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    width: 110, // Fixed width for consistency
+    justifyContent: 'center',
   },
-  cardImage: {
-    width: 90,
-    height: 140,
+  topImage: {
+    width: 100,
+    height: 180,
     resizeMode: 'contain',
-    marginBottom: 12,
   },
-  cardLabel: {
-    fontSize: 14,
+  bottomImage: {
+    width: 180, // Made the bottom image wider
+    height: 160,
+    resizeMode: 'contain',
+  },
+  optionLabel: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#495057',
+    marginTop: 15, // Added margin top for spacing
   },
 });
 

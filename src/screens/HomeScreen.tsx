@@ -23,12 +23,12 @@ const HomeScreen = () => {
           style={styles.card}
           onPress={() => navigation.navigate('CutSelection')}
         >
-          <Ionicons name="people-outline" size={48} color="#4867B7" />
+          <Ionicons name="people-outline" size={48} color="#000000" />
           <Text style={styles.cardTitle}>같은 공간</Text>
           <Text style={styles.cardDescription}>친구와 함께 찍기</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.card}>
-          <Ionicons name="wifi-outline" size={48} color="#4867B7" />
+          <Ionicons name="wifi-outline" size={48} color="#000000" />
           <Text style={styles.cardTitle}>멀리서도</Text>
           <Text style={styles.cardDescription}>온라인으로 함께 찍기</Text>
         </TouchableOpacity>
