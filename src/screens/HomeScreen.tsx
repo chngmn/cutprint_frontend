@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ImageBackground,
+} from 'react-native';
 import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,9 +21,15 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <CustomText style={styles.headerTitle}>Cutprint</CustomText>
-        <CustomText style={styles.subHeader}>언제 어디서든, 간편하게 네컷</CustomText>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={styles.logo}
+          fadeDuration={0}
+          loadingIndicatorSource={require('../../assets/logo.png')}
+        />
+        <CustomText style={styles.subHeader}>
+          언제 어디서든, 간편하게 네컷
+        </CustomText>
       </View>
       <View style={styles.cardContainer}>
         <TouchableOpacity
@@ -26,12 +38,16 @@ const HomeScreen = () => {
         >
           <Ionicons name="people-outline" size={48} color="#000000" />
           <CustomText style={styles.cardTitle}>같은 공간</CustomText>
-          <CustomText style={styles.cardDescription}>친구와 함께 찍기</CustomText>
+          <CustomText style={styles.cardDescription}>
+            친구와 함께 찍기
+          </CustomText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.card}>
           <Ionicons name="wifi-outline" size={48} color="#000000" />
           <CustomText style={styles.cardTitle}>멀리서도</CustomText>
-          <CustomText style={styles.cardDescription}>온라인으로 함께 찍기</CustomText>
+          <CustomText style={styles.cardDescription}>
+            온라인으로 함께 찍기
+          </CustomText>
         </TouchableOpacity>
       </View>
     </View>
@@ -51,10 +67,12 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     resizeMode: 'contain',
     marginBottom: 10,
+    // 이미지 로딩 최적화
+    backgroundColor: 'transparent',
   },
   headerTitle: {
     fontSize: 28,
@@ -63,7 +81,8 @@ const styles = StyleSheet.create({
   },
   subHeader: {
     fontSize: 16,
-    color: '#868E96',
+    fontWeight: 'bold',
+    color: '#333',
     marginTop: 8,
   },
   cardContainer: {
