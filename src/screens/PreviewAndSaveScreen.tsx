@@ -1,3 +1,4 @@
+//src/screens/PreviewAndSaveScreen.tsx
 import React from 'react';
 import {
   View,
@@ -11,8 +12,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
-import type { RouteProp } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomText from '../components/CustomText';
 
 type RootStackParamList = {
@@ -66,8 +66,6 @@ const PreviewAndSaveScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const shareToInstagramStory = async () => {
     try {
-      // On iOS, this UTI will open the Instagram story creation screen.
-      // On Android, it will open the standard share sheet.
       await Sharing.shareAsync(imageUri, {
         mimeType: 'image/jpeg',
         UTI: 'com.instagram.sharedSticker.backgroundImage',

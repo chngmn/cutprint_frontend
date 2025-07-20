@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser'; // WebBrowser import 추가
@@ -31,6 +31,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false); // Google 로그인 과정의 로딩 상태
   const [nickname, setNickname] = useState('');  
   const [needsNickname, setNeedsNickname] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('');
+  const [signupNickname, setSignupNickname] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // app.json의 extra 필드에서 클라이언트 ID를 가져옵니다.
   const iosClientId = Constants.expoConfig?.extra?.googleAuth?.iosClientId as string;
@@ -140,6 +148,74 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
   
+  const BACKEND_URL = 'http://192.249.27.93:3000'; // 실제 배포시 주소로 변경
+
+  const handleSignup = async () => {
+    if (!signupEmail || !signupPassword || !signupPasswordConfirm || !signupNickname) {
+      Alert.alert('오류', '모든 항목을 입력해주세요.');
+      return;
+    }
+    if (signupPassword !== signupPasswordConfirm) {
+      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: signupEmail,
+          password: signupPassword,
+          nickname: signupNickname,
+        }),
+      });
+      if (!res.ok) {
+        let errMsg = '회원가입 실패';
+        try { const err = await res.json(); errMsg = err.message || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
+      Alert.alert('회원가입 성공', '이제 로그인 해주세요!');
+      setShowSignup(false);
+      setSignupEmail('');
+      setSignupPassword('');
+      setSignupPasswordConfirm('');
+      setSignupNickname('');
+    } catch (err: any) {
+      Alert.alert('회원가입 오류', err.message);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!loginEmail || !loginPassword) {
+      Alert.alert('오류', '이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+      if (!res.ok) {
+        let errMsg = '로그인 실패';
+        try { const err = await res.json(); errMsg = err.message || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
+      const data = await res.json();
+      await AsyncStorage.setItem('access_token', data.access_token);
+      Alert.alert('로그인 성공', '환영합니다!');
+      setShowLogin(false);
+      setLoginEmail('');
+      setLoginPassword('');
+      navigation.replace('Main'); // 로그인 성공 시 메인으로 이동
+    } catch (err: any) {
+      Alert.alert('로그인 오류', err.message);
+    }
+  };
+  
   return (
     <View style={styles.container}>
       <View style={styles.centerContent}>
@@ -147,25 +223,136 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         <Text style={styles.title}>Cutprint</Text>
       </View>
 
-      {/* 기존 "Log in" 버튼 유지 */}
-      {/* <TouchableOpacity
-        style={styles.loginButton}
-        onPress={handleRegularLogin} // 기존 핸들러 연결
-      >
-        <Text style={styles.loginButtonText}>Log in</Text>
-      </TouchableOpacity> */}
-
-      {/* Google 로그인 버튼 추가 */}
+      {/* 일반 회원가입/로그인 버튼 추가 */}
       <TouchableOpacity
-        style={[styles.googleLoginButton, (!request || loading) && styles.disabledButton]} // 로딩 중이거나 request 객체가 없을 때 비활성화 스타일 적용
+        style={styles.loginButton}
+        onPress={() => setShowSignup(true)}
+      >
+        <Text style={styles.loginButtonText}>회원가입</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={() => setShowLogin(true)}
+      >
+        <Text style={styles.loginButtonText}>로그인</Text>
+      </TouchableOpacity>
+
+      {/* 회원가입 모달 */}
+      <Modal
+        visible={showSignup}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowSignup(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>회원가입</Text>
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="이메일"
+              value={signupEmail}
+              onChangeText={setSignupEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="닉네임"
+              value={signupNickname}
+              onChangeText={setSignupNickname}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="비밀번호"
+              value={signupPassword}
+              onChangeText={setSignupPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="비밀번호 확인"
+              value={signupPasswordConfirm}
+              onChangeText={setSignupPasswordConfirm}
+              secureTextEntry
+            />
+            <View style={{ flexDirection: 'row', marginTop: 20 }}>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, marginRight: 8 }]}
+                onPress={handleSignup}
+              >
+                <Text style={styles.submitButtonText}>확인</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#ccc', marginLeft: 8 }]}
+                onPress={() => setShowSignup(false)}
+              >
+                <Text style={[styles.submitButtonText, { color: '#333' }]}>취소</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 로그인 모달 */}
+      <Modal
+        visible={showLogin}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowLogin(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>로그인</Text>
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="이메일"
+              value={loginEmail}
+              onChangeText={setLoginEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="비밀번호"
+              value={loginPassword}
+              onChangeText={setLoginPassword}
+              secureTextEntry
+            />
+            <View style={{ flexDirection: 'row', marginTop: 20 }}>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, marginRight: 8 }]}
+                onPress={handleLogin}
+              >
+                <Text style={styles.submitButtonText}>확인</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { flex: 1, backgroundColor: '#ccc', marginLeft: 8 }]}
+                onPress={() => setShowLogin(false)}
+              >
+                <Text style={[styles.submitButtonText, { color: '#333' }]}>취소</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Google 로그인 버튼 */}
+      <TouchableOpacity
+        style={[styles.googleLoginButton, (!request || loading) && styles.disabledButton]}
         onPress={handleGoogleSignIn}
-        disabled={!request || loading} // 요청 객체가 없거나 로딩 중일 때 버튼 비활성화
+        disabled={!request || loading}
       >
         {loading ? (
-          <ActivityIndicator color="#4285F4" /> // 로딩 중일 때 로딩 인디케이터 표시
+          <ActivityIndicator color="#4285F4" />
         ) : (
           <>
-            {/* Google 로고 이미지 추가 (예시 URL, 실제 앱에서는 로컬 에셋 사용 권장) */}
             <Image
               source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
               style={styles.googleIcon}
@@ -371,6 +558,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   submitText: {
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: 16,
+  },
+  submitButtonText: { // 회원가입/로그인 모달에 사용될 텍스트 스타일
     textAlign: 'center',
     color: '#fff',
     fontSize: 16,
