@@ -380,6 +380,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 25, // 각 섹션 하단 마진
+    minHeight: 170,
   },
   sectionTitle: {
     fontSize: 20,
