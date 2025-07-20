@@ -40,6 +40,7 @@ const config: ExpoConfig = {
   // Google 로그인 클라이언트 ID 등을 설정할 수 있습니다.
   // 예시:
   extra: {
+    backendUrl: process.env.BACKEND_URL,
     googleAuth: {
       iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
     //   androidClientId: "YOUR_ANDROID_CLIENT_ID_HERE.apps.googleusercontent.com",

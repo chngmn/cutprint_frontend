@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser'; // WebBrowser import 추가
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 중요: 웹 브라우저가 자동으로 닫히도록 설정
 WebBrowser.maybeCompleteAuthSession();
@@ -19,7 +20,7 @@ type LoginScreenProps = {
 
 interface UserInfo {
   id: string;
-  name: string;
+  nickname: string;
   email: string;
   picture?: string;
 }
@@ -28,6 +29,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(false); // Google 로그인 과정의 로딩 상태
+  const [nickname, setNickname] = useState('');  
+  const [needsNickname, setNeedsNickname] = useState(false);
 
   // app.json의 extra 필드에서 클라이언트 ID를 가져옵니다.
   const iosClientId = Constants.expoConfig?.extra?.googleAuth?.iosClientId as string;
@@ -101,9 +104,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setUserInfo(user); // 가져온 사용자 정보 저장
       console.log('Google 로그인 성공:', user);
 
-      // 실제 앱에서는 여기서 사용자 정보를 서버에 전송하고,
-      // 서버로부터 받은 세션 토큰 등으로 로그인 처리를 완료합니다.
-      navigation.replace('Main'); // 사용자 정보 처리 후 메인 화면으로 이동
+      if(!user.nickname) {
+        setNeedsNickname(true);
+      } else {
+        // 실제 앱에서는 여기서 사용자 정보를 서버에 전송하고,
+        // 서버로부터 받은 세션 토큰 등으로 로그인 처리를 완료합니다.
+        navigation.replace('Main'); // 사용자 정보 처리 후 메인 화면으로 이동
+      }
 
     } catch (error) {
       console.error('사용자 정보 가져오기 오류:', error);
@@ -115,13 +122,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   // 기존 "Log in" 버튼 핸들러 (디자인 유지 및 기능 분리)
-  const handleRegularLogin = () => {
-    // 이 버튼은 Google 로그인과 별개로 작동합니다.
-    // 여기에 일반 로그인 로직 (예: 이메일/비밀번호 입력 폼으로 이동)을 추가하거나
-    // 임시로 Main 화면으로 이동하도록 할 수 있습니다.
-    Alert.alert('알림', '일반 로그인 버튼 클릭 (현재는 Main 화면으로 이동)');
-    navigation.replace('Main'); // 기존 동작 유지
-  };
+  // const handleRegularLogin = () => {
+  //   // 이 버튼은 Google 로그인과 별개로 작동합니다.
+  //   // 여기에 일반 로그인 로직 (예: 이메일/비밀번호 입력 폼으로 이동)을 추가하거나
+  //   // 임시로 Main 화면으로 이동하도록 할 수 있습니다.
+  //   Alert.alert('알림', '일반 로그인 버튼 클릭 (현재는 Main 화면으로 이동)');
+  //   navigation.replace('Main'); // 기존 동작 유지
+  // };
 
   // Google 로그인 버튼 핸들러
   const handleGoogleSignIn = () => {
@@ -141,12 +148,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       </View>
 
       {/* 기존 "Log in" 버튼 유지 */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.loginButton}
         onPress={handleRegularLogin} // 기존 핸들러 연결
       >
         <Text style={styles.loginButtonText}>Log in</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Google 로그인 버튼 추가 */}
       <TouchableOpacity
@@ -167,6 +174,54 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </>
         )}
       </TouchableOpacity>
+
+      {/* 닉네임 입력용 모달 */}
+      <Modal
+        visible={needsNickname}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          // 뒤로 버튼 눌러도 닫지 않도록 막거나, 원하면 needsNickname=false 처리
+          Alert.alert('닉네임을 입력해야만 계속할 수 있어요.');
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>닉네임을 설정해주세요</Text>
+            <TextInput
+              style={styles.nicknameInput}
+              placeholder="닉네임 입력"
+              value={nickname}
+              onChangeText={setNickname}
+              maxLength={50}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={async () => {
+                if (!nickname.trim()) {
+                  return Alert.alert('닉네임을 입력해주세요');
+                }
+                try {
+                  // await fetch('/api/users/me', {
+                  //   method: 'PATCH',
+                  //   headers: { 'Content-Type': 'application/json' },
+                  //   body: JSON.stringify({ nickname }),
+                  // });
+                  await AsyncStorage.setItem('nickname', nickname);
+                  console.log('설정된 닉네임',AsyncStorage.getItem('nickname'));
+                  setNeedsNickname(false);
+                  navigation.replace('Main');
+                } catch {
+                  Alert.alert('저장에 실패했습니다');
+                }
+              }}
+            >
+              <Text style={styles.submitText}>완료</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       
       {/* Google 로그인 성공 시 사용자 정보 표시 (개발/디버깅용, 실제 앱에서는 제거 또는 다른 화면으로 이동) */}
       {/* {userInfo && (
@@ -236,10 +291,7 @@ const styles = StyleSheet.create({
     marginBottom: 40, // 하단 여백 유지
     borderColor: '#ccc', // 테두리 색상
     borderWidth: 1, // 테두리 두께
-    shadowColor: '#000', // 그림자 효과
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0,0,0,0.1)',
     elevation: 3, // Android용 그림자
   },
   disabledButton: {
@@ -274,6 +326,54 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginTop: 10,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',  // 반투명 검정
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // 모달 내부 컨테이너
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+  },
+  nicknameContainer: {
+    width: '80%',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  label: {
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  nicknameInput: {
+    width: '100%',
+    height: 44,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  submitButton: {
+    width: '100%',
+    backgroundColor: '#599EF1',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  submitText: {
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: 16,
   },
 });
 
