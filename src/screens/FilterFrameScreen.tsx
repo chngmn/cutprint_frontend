@@ -14,7 +14,7 @@ import ViewShot from 'react-native-view-shot';
 import { useRef } from 'react';
 
 type FilterFrameStackParamList = {
-  PreviewAndSave: { imageUri: string };
+  PreviewAndSave: { imageUri: string; cutType: string };
   FilterFrame: { selectedPhotos: string[]; cutType: string };
 };
 
@@ -266,7 +266,7 @@ const FilterFrameScreen = () => {
         onPress={async () => {
           if (viewShotRef.current?.capture) {
             const uri = await viewShotRef.current.capture();
-            navigation.navigate('PreviewAndSave', { imageUri: uri });
+            navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
           }
         }}
       >

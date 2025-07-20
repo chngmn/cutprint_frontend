@@ -1,27 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ScrollView, Image, StyleSheet, Dimensions, View, Modal, Pressable, TouchableOpacity, Alert, Text } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
 
-type FrameType = '1x4' | '2x2' | '3x2';
+type FrameType = '1x4' | '2x2' | '3x2' | 'Vertical 4-cut' | '4-cut grid' | '6-cut grid';
 interface Photo { id: string; url: string; frameType: FrameType; }
-
-// 더미 사진 데이터: frameType별로 섞여 있음
-const dummyPhotos: Photo[] = [
-  { id: '1',  url: 'https://picsum.photos/seed/1/400',  frameType: '1x4' },
-  { id: '2',  url: 'https://picsum.photos/seed/2/400',  frameType: '2x2' },
-  { id: '3',  url: 'https://picsum.photos/seed/3/400',  frameType: '3x2' },
-  { id: '4',  url: 'https://picsum.photos/seed/4/400',  frameType: '2x2' },
-  { id: '5',  url: 'https://picsum.photos/seed/5/400',  frameType: '3x2' },
-  { id: '6',  url: 'https://picsum.photos/seed/6/400',  frameType: '1x4' },
-  { id: '7',  url: 'https://picsum.photos/seed/7/400',  frameType: '2x2' },
-  { id: '8',  url: 'https://picsum.photos/seed/8/400',  frameType: '3x2' },
-  { id: '9',  url: 'https://picsum.photos/seed/9/400',  frameType: '1x4' },
-  { id: '10', url: 'https://picsum.photos/seed/10/400', frameType: '2x2' },
-  { id: '11', url: 'https://picsum.photos/seed/11/400', frameType: '3x2' },
-  { id: '12', url: 'https://picsum.photos/seed/12/400', frameType: '1x4' },
-];
 
 const { width } = Dimensions.get('window');
 const GAP = 4;
@@ -36,65 +21,96 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 }
 
 export default function AlbumScreen() {
+  const route = useRoute();
+  const { newImageUri, frameType } = (route.params || {}) as { newImageUri?: string; frameType?: FrameType };
 
+  const [appPhotos, setAppPhotos] = useState<Photo[]>([
+    { id: 'mock1', url: 'https://via.placeholder.com/70x270/FF0000/FFFFFF?text=Vertical+4-cut', frameType: 'Vertical 4-cut' },
+    { id: 'mock2', url: 'https://via.placeholder.com/140x240/00FF00/FFFFFF?text=4-cut+grid', frameType: '4-cut grid' },
+    { id: 'mock3', url: 'https://via.placeholder.com/70x270/0000FF/FFFFFF?text=1x4', frameType: '1x4' },
+    { id: 'mock4', url: 'https://via.placeholder.com/140x240/FFFF00/000000?text=6-cut+grid', frameType: '6-cut grid' },
+    { id: 'mock5', url: 'https://via.placeholder.com/140x240/FF00FF/FFFFFF?text=2x2', frameType: '2x2' },
+    { id: 'mock6', url: 'https://via.placeholder.com/140x240/00FFFF/000000?text=3x2', frameType: '3x2' },
+  ]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+
+  useEffect(() => {
+    if (newImageUri && frameType) {
+      setAppPhotos(prevPhotos => [
+        { id: Date.now().toString(), url: newImageUri, frameType: frameType },
+        ...prevPhotos,
+      ]);
+    }
+  }, [newImageUri, frameType]);
+
   // 전체 사용 가능한 화면 너비 (마진 제외)
   const availableWidth = width - GAP * 2;
   
-  // 프레임별 크기 매핑: 높이는 항상 전체 너비, 가로만 1/3 또는 2/3
-  const sizeMap = useMemo(() => {
-    const oneThird = availableWidth / 3;
-    const twoThirds = (availableWidth * 2) / 3;
-    return {
-      '1x4': { w: oneThird,    h: availableWidth },
-      '2x2': { w: twoThirds,   h: availableWidth },
-      '3x2': { w: twoThirds,   h: availableWidth },
-    } as Record<FrameType, { w: number; h: number }>;
-  }, [availableWidth]);
+  
 
   // 사진들을 2개씩 묶어서 각 행(Row) 구성
-  const rows = useMemo(() => chunkArray(dummyPhotos, 2), []);
+  const rows = useMemo(() => chunkArray(appPhotos, 2), [appPhotos]);
 
-  // 사진 저장 함수
-  const saveToCameraRoll = async (uri: string) => {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('권한 필요', '저장하려면 사진 접근 권한이 필요합니다.');
-      return;
-    }
-    try {
-      // 임시 파일 경로 생성
-      const fileName = `${FileSystem.documentDirectory}photo-${Date.now()}.jpg`;
-      // 원격 이미지 다운로드
-      const download = await FileSystem.downloadAsync(uri, fileName);
-      // 로컬 파일을 갤러리에 에셋으로 생성
-      await MediaLibrary.createAssetAsync(download.uri);
-      Alert.alert('저장 완료', '사진이 갤러리에 저장되었습니다.');
-    } catch (e) {
-      console.error(e);
-      Alert.alert('저장 실패', '사진 저장 중 오류가 발생했습니다.');
-    }
-  };
+  
 
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        {rows.map((rowPhotos, rowIndex) => (
+        {rows.map((rowPhotos: Photo[], rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {rowPhotos.map(photo => {
-              const { w, h } = sizeMap[photo.frameType];
+              const ratios = rowPhotos.map(p => {
+                switch (p.frameType) {
+                  case '1x4':
+                  case 'Vertical 4-cut':
+                    return 70 / 270;
+                  case '2x2':
+                  case '3x2':
+                  case '4-cut grid':
+                  case '6-cut grid':
+                    return 140 / 240;
+                  default:
+                    return 1;
+                }
+              });
+
+              let calculatedHeight = 0;
+              if (ratios.length === 2) {
+                calculatedHeight = (availableWidth - GAP * 2) / (ratios[0] + ratios[1]);
+              } else if (ratios.length === 1) {
+                calculatedHeight = (availableWidth - GAP * 2) / ratios[0];
+              }
+
+              let photoWidth = 0;
+              if (calculatedHeight > 0) {
+                switch (photo.frameType) {
+                  case '1x4':
+                  case 'Vertical 4-cut':
+                    photoWidth = calculatedHeight * (70 / 270);
+                    break;
+                  case '2x2':
+                  case '3x2':
+                  case '4-cut grid':
+                  case '6-cut grid':
+                    photoWidth = calculatedHeight * (140 / 240);
+                    break;
+                  default:
+                    photoWidth = calculatedHeight * 1;
+                }
+              }
+
               return (
                 <TouchableOpacity
                   key={photo.id}
-                  style={{ marginHorizontal: GAP / 2 }}
+                  style={{ width: photoWidth, height: calculatedHeight, marginHorizontal: GAP / 2 }}
                   activeOpacity={0.8}
                   onPress={() => setSelectedPhoto(photo)}
                 >
                   <Image
                     source={{ uri: photo.url }}
-                    style={[{ width: w, height: h }, styles.image]}
-                    resizeMode="cover"
+                    style={styles.image}
+                    resizeMode="contain"
                   />
                 </TouchableOpacity>
               );
@@ -118,10 +134,9 @@ export default function AlbumScreen() {
             />
             <TouchableOpacity
               style={styles.fab}
-              onPress={() => saveToCameraRoll(selectedPhoto.url)}
+              onPress={() => Alert.alert('알림', '이 사진은 앱 앨범에 저장되어 있습니다.')}
             >
-              {/* <Text style={styles.saveText}>저장하기</Text> */}
-              <MaterialCommunityIcons name="download" size={28} color="#fff" />
+              <MaterialCommunityIcons name="information-outline" size={28} color="#fff" />
             </TouchableOpacity>
           </Pressable>
         </Modal>
@@ -143,6 +158,7 @@ const styles = StyleSheet.create({
     
   },
   image: {
+    flex: 1,
     borderRadius: 6,
     backgroundColor: '#ddd',
   },
