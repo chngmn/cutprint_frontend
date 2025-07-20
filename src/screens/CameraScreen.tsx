@@ -21,8 +21,9 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 type HomeStackParamList = {
   HomeMain: undefined;
   CutSelection: undefined;
-  Camera: { cutType: string };
-  PhotoSelection: { photos: string[]; cutType: string };
+  Camera: { cutType: string; isOnlineMode?: boolean };
+  PhotoSelection: { photos: string[]; cutType: string; isOnlineMode?: boolean };
+  FilterFrame: { selectedPhotos: string[]; cutType: string };
 };
 
 type CameraScreenNavigationProp = StackNavigationProp<
@@ -84,7 +85,7 @@ const CameraScreen = () => {
     }, [navigation]),
   );
   const route = useRoute();
-  const { cutType } = route.params as { cutType: string };
+  const { cutType, isOnlineMode } = route.params as { cutType: string; isOnlineMode?: boolean };
 
   // Request camera permission on mount
   useEffect(() => {
@@ -141,6 +142,7 @@ const CameraScreen = () => {
             navigation.navigate('PhotoSelection', {
               photos: newPhotos,
               cutType: cutType,
+              isOnlineMode: isOnlineMode,
             });
           }
         }

@@ -12,11 +12,11 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
-type HomeStackParamList = {
+export type HomeStackParamList = {
   HomeMain: undefined;
   CutSelection: undefined;
-  Camera: { cutType: string };
-  PhotoSelection: { photos: string[]; cutType: string };
+  Camera: { cutType: string; isOnlineMode?: boolean };
+  PhotoSelection: { photos: string[]; cutType: string; isOnlineMode?: boolean };
   FilterFrame: { selectedPhotos: string[]; cutType: string };
 };
 
@@ -112,10 +112,8 @@ const FramePreview = ({
 const PhotoSelectionScreen = () => {
   const route = useRoute();
   const navigation = useNavigation<PhotoSelectionNavigationProp>();
-  const { photos, cutType } = route.params as {
-    photos: string[];
-    cutType: string;
-  };
+  const params = route.params as HomeStackParamList['PhotoSelection'];
+  const { photos, cutType, isOnlineMode } = params;
 
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const requiredCount = getRequiredPhotoCount(cutType);
@@ -124,17 +122,21 @@ const PhotoSelectionScreen = () => {
     if (selectedPhotos.includes(uri)) {
       setSelectedPhotos(selectedPhotos.filter((item) => item !== uri));
     } else {
-      if (selectedPhotos.length < requiredCount) {
-        setSelectedPhotos([...selectedPhotos, uri]);
+      if (isOnlineMode) {
+        setSelectedPhotos([uri]);
+      } else {
+        if (selectedPhotos.length < requiredCount) {
+          setSelectedPhotos([...selectedPhotos, uri]);
+        }
       }
     }
   };
 
   const handleCompletion = () => {
-    if (selectedPhotos.length === requiredCount) {
+    if (selectedPhotos.length === (isOnlineMode ? 1 : requiredCount)) {
       navigation.navigate('FilterFrame', { selectedPhotos, cutType });
     } else {
-      Alert.alert('알림', `사진을 ${requiredCount}장 선택해야 합니다.`);
+      Alert.alert('알림', `사진을 ${isOnlineMode ? 1 : requiredCount}장 선택해야 합니다.`);
     }
   };
 
@@ -163,13 +165,13 @@ const PhotoSelectionScreen = () => {
         <Text style={styles.title}>사진 선택</Text>
         <Text
           style={styles.subtitle}
-        >{`프레임에 사용할 사진 ${requiredCount}장을 선택하세요.`}</Text>
+        >{`프레임에 사용할 사진 ${isOnlineMode ? 1 : requiredCount}장을 선택하세요.`}</Text>
       </View>
       <FlatList
         data={photos}
         renderItem={renderPhoto}
         keyExtractor={(item) => item}
-        numColumns={4} // Changed to 4 columns for smaller thumbnails
+        numColumns={4}
         contentContainerStyle={styles.listContainer}
       />
       <View style={styles.bottomContainer}>
@@ -177,12 +179,12 @@ const PhotoSelectionScreen = () => {
         <TouchableOpacity
           style={[
             styles.completeButton,
-            selectedPhotos.length === requiredCount
+            selectedPhotos.length === (isOnlineMode ? 1 : requiredCount)
               ? styles.completeButtonActive
               : styles.completeButtonInactive,
           ]}
           onPress={handleCompletion}
-          disabled={selectedPhotos.length !== requiredCount}
+          disabled={selectedPhotos.length !== (isOnlineMode ? 1 : requiredCount)}
         >
           <Text style={styles.completeButtonText}>선택 완료</Text>
         </TouchableOpacity>

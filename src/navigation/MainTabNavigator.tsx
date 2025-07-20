@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import AlbumScreen from '../screens/AlbumScreen';
 import CutSelectionScreen from '../screens/CutSelectionScreen';
+import CutSelectionOnlineScreen from '../screens/CutSelectionOnlineScreen';
 import CameraScreen from '../screens/CameraScreen';
 import { Ionicons } from '@expo/vector-icons';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +21,7 @@ type RootStackParamList = {
 type HomeStackParamList = {
   HomeMain: undefined;
   CutSelection: undefined;
+  CutSelectionOnline: undefined;
   Camera: { cutType: string };
   PhotoSelection: { photos: string[]; cutType: string };
   FilterFrame: { selectedPhotos: string[]; cutType: string };
@@ -36,6 +38,7 @@ const HomeStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="CutSelection" component={CutSelectionScreen} />
+      <Stack.Screen name="CutSelectionOnline" component={CutSelectionOnlineScreen} />
       <Stack.Screen
         name="CameraGuide"
         component={CameraGuideScreen}

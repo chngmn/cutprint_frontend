@@ -13,6 +13,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   CutSelection: undefined;
+  CutSelectionOnline: undefined;
 };
 
 const HomeScreen = () => {
@@ -42,7 +43,10 @@ const HomeScreen = () => {
             친구와 함께 찍기
           </CustomText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity 
+          style={styles.card}
+          onPress={() => navigation.navigate('CutSelectionOnline')}
+        >
           <Ionicons name="wifi-outline" size={48} color="#000000" />
           <CustomText style={styles.cardTitle}>멀리서도</CustomText>
           <CustomText style={styles.cardDescription}>
