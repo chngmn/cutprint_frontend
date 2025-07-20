@@ -16,7 +16,8 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import CustomText from '../components/CustomText';
 
 type RootStackParamList = {
-  PreviewAndSave: { imageUri: string };
+  PreviewAndSave: { imageUri: string; cutType: string };
+  Album: { newImageUri: string; frameType: string };
 };
 
 type PreviewAndSaveScreenRouteProp = RouteProp<
@@ -24,10 +25,7 @@ type PreviewAndSaveScreenRouteProp = RouteProp<
   'PreviewAndSave'
 >;
 
-type PreviewAndSaveScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'PreviewAndSave'
->;
+type PreviewAndSaveScreenNavigationProp = StackNavigationProp<any>;
 
 type Props = {
   route: PreviewAndSaveScreenRouteProp;
@@ -35,23 +33,16 @@ type Props = {
 };
 
 const PreviewAndSaveScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { imageUri } = route.params;
+  const { imageUri, cutType } = route.params;
 
   const saveToAlbum = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
-        await MediaLibrary.saveToLibraryAsync(imageUri);
-        Alert.alert('저장 완료', '사진이 앨범에 저장되었습니다.');
-      } else {
-        Alert.alert(
-          '권한 필요',
-          '사진을 저장하려면 미디어 라이브러리 접근 권한이 필요합니다.',
-        );
-      }
+      // @ts-ignore
+      navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType } });
+      Alert.alert('저장 완료', '사진이 앱 앨범에 저장되었습니다.');
     } catch (error) {
-      console.error('Error saving to album:', error);
-      Alert.alert('오류', '사진을 저장하는 중 오류가 발생했습니다.');
+      console.error('Error navigating to AlbumScreen:', error);
+      Alert.alert('오류', '사진을 앱 앨범에 저장하는 중 오류가 발생했습니다.');
     }
   };
 
