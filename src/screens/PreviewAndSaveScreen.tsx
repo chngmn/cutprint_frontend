@@ -12,8 +12,9 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import CustomText from '../components/CustomText';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };

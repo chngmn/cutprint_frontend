@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://localhost:3000'; // 실제 서버 주소로 변경 필요
+const API_BASE_URL = 'http://192.249.27.137:3000'; // 실제 서버 주소로 변경 필요
 
 class ApiService {
   private async getAuthToken(): Promise<string | null> {

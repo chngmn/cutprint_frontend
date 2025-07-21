@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
   SafeAreaView,
-  FlatList,
   Image,
   TouchableOpacity,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import CustomText from '../components/CustomText';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ViewShot from 'react-native-view-shot';
-import { useRef } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import CustomText from '../components/CustomText';
+import FilterSelector from '../components/FilterSelector';
+import FrameSelector from '../components/FrameSelector';
+import PhotoEditingTools from '../components/PhotoEditingTools';
+import { getFilterById, applyFilterToStyle } from '../utils/filterEffects';
+import { getFrameById, applyFrameStyle } from '../utils/frameStyles';
 
 type FilterFrameStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };
@@ -23,23 +30,8 @@ type FilterFrameNavigationProp = StackNavigationProp<
   'FilterFrame'
 >;
 
-// Dummy data for filters (replace with actual filter logic later)
-const filters = [
-  { id: 'original', name: '원본' },
-  { id: 'bw', name: '흑백' },
-  { id: 'sepia', name: '세피아' },
-  { id: 'vintage', name: '빈티지' },
-  { id: 'cool', name: '시원한' },
-  { id: 'warm', name: '따뜻한' },
-];
-
-// Dummy data for frames (replace with actual frame assets/logic later)
-const frames = [
-  { id: 'black', name: '', color: '#000000' },
-  { id: 'white', name: '', color: '#FFFFFF' },
-  { id: 'pink', name: '', color: '#FFC0CB' },
-  { id: 'blue', name: '', color: '#ADD8E6' },
-];
+// 편집 모드 타입
+type EditMode = 'filters' | 'frames' | 'editing';
 
 const getRequiredPhotoCount = (cutType: string): number => {
   switch (cutType) {
@@ -62,73 +54,73 @@ const FilterFrameScreen = () => {
   };
 
   const [selectedFilter, setSelectedFilter] = useState<string>('original');
-  const [selectedFrame, setSelectedFrame] = useState<string>('black');
+  const [selectedFrame, setSelectedFrame] = useState<string>('no_frame');
+  const [editMode, setEditMode] = useState<EditMode>('filters');
+  const [editingToolsVisible, setEditingToolsVisible] = useState(false);
+  const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
+  const [beforeAfterMode, setBeforeAfterMode] = useState(false);
 
   const requiredCount = getRequiredPhotoCount(cutType);
   const slots = Array.from({ length: requiredCount });
-
   const viewShotRef = useRef<ViewShot>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const currentFilter = getFilterById(selectedFilter);
+  const currentFrame = getFrameById(selectedFrame);
 
   const getFrameStyle = () => {
+    const baseStyle = {
+      Vertical: styles.previewFrameVertical,
+      Grid4: styles.previewFrameGrid4,
+      Grid6: styles.previewFrameGrid6,
+    };
+    
     switch (cutType) {
       case 'Vertical 4-cut':
-        return styles.previewFrameVertical;
+        return baseStyle.Vertical;
       case '4-cut grid':
-        return styles.previewFrameGrid4;
+        return baseStyle.Grid4;
       case '6-cut grid':
-        return styles.previewFrameGrid6;
+        return baseStyle.Grid6;
       default:
-        return styles.previewFrameVertical;
+        return baseStyle.Vertical;
     }
   };
 
   const getSlotStyle = () => {
-    const baseStyle = {
-      borderColor: currentFrameColor,
+    const frameStyle = currentFrame ? applyFrameStyle(currentFrame) : {};
+    
+    const baseSlotStyles = {
+      'Vertical 4-cut': styles.previewSlotVertical,
+      '4-cut grid': styles.previewSlotGrid4,
+      '6-cut grid': styles.previewSlotGrid6,
     };
 
-    switch (cutType) {
-      case 'Vertical 4-cut':
-        return { ...styles.previewSlotVertical, ...baseStyle };
-      case '4-cut grid':
-        return { ...styles.previewSlotGrid4, ...baseStyle };
-      case '6-cut grid':
-        return { ...styles.previewSlotGrid6, ...baseStyle };
-      default:
-        return { ...styles.previewSlotVertical, ...baseStyle };
-    }
+    return {
+      ...baseSlotStyles[cutType as keyof typeof baseSlotStyles] || styles.previewSlotVertical,
+      ...frameStyle,
+    };
   };
 
   const getCutprintLabelStyle = () => {
-    switch (cutType) {
-      case 'Vertical 4-cut':
-        return { width: 70 };
-      case '4-cut grid':
-        return { width: 140 };
-      case '6-cut grid':
-        return { width: 140 };
-      default:
-        return { width: 70 };
-    }
+    const widths = {
+      'Vertical 4-cut': 70,
+      '4-cut grid': 140,
+      '6-cut grid': 140,
+    };
+    
+    return {
+      width: widths[cutType as keyof typeof widths] || 70,
+      backgroundColor: currentFrame?.style.borderColor || '#000000',
+    };
   };
 
-  const renderFilterItem = ({
-    item,
-  }: {
-    item: { id: string; name: string };
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.filterItem,
-        selectedFilter === item.id && styles.filterItemSelected,
-      ]}
-      onPress={() => setSelectedFilter(item.id)}
-    >
-      <CustomText style={styles.filterText}>{item.name}</CustomText>
-    </TouchableOpacity>
-  );
+  const handleEditingToolChange = (toolId: string, value: number) => {
+    setEditingValues(prev => ({ ...prev, [toolId]: value }));
+  };
 
   const getContrastTextColor = (hexColor: string) => {
+    if (!hexColor || hexColor.length < 7) return '#FFFFFF';
     const r = parseInt(hexColor.substring(1, 3), 16);
     const g = parseInt(hexColor.substring(3, 5), 16);
     const b = parseInt(hexColor.substring(5, 7), 16);
@@ -136,46 +128,91 @@ const FilterFrameScreen = () => {
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   };
 
-  const renderFrameItem = ({
-    item,
-  }: {
-    item: { id: string; name: string; color: string };
-  }) => (
+  const applyImageFilters = (imageStyle: any) => {
+    if (!currentFilter) return imageStyle;
+
+    const filterStyle = { ...imageStyle };
+    const { transform } = currentFilter;
+
+    // 편집 도구 값들 적용
+    const brightness = 1 + (editingValues.brightness || 0) / 100;
+    const contrast = 1 + (editingValues.contrast || 0) / 100;
+    const saturation = 1 + (editingValues.saturation || 0) / 100;
+    
+    // 필터의 기본 변환값과 편집값 결합
+    filterStyle.brightness = (transform.brightness || 1) * brightness;
+    filterStyle.contrast = (transform.contrast || 1) * contrast;
+    filterStyle.saturation = (transform.saturation || 1) * saturation;
+
+    return filterStyle;
+  };
+
+  const renderPhotoSlot = (index: number) => {
+    const hasPhoto = selectedPhotos[index];
+    const slotStyle = getSlotStyle();
+    
+    return (
+      <View key={index} style={[styles.previewPhotoSlot, slotStyle]}>
+        {hasPhoto ? (
+          <View style={{ position: 'relative', flex: 1 }}>
+            <Image
+              source={{ uri: selectedPhotos[index] }}
+              style={[styles.previewImage, applyImageFilters({})]}
+            />
+            {/* 필터 오버레이 */}
+            {currentFilter?.transform.overlay && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: currentFilter.transform.overlay.color,
+                    opacity: currentFilter.transform.overlay.opacity,
+                  },
+                ]}
+              />
+            )}
+            {/* Before/After 모드 */}
+            {beforeAfterMode && (
+              <View style={[StyleSheet.absoluteFillObject, styles.beforeAfterSplit]}>
+                <View style={styles.beforeHalf}>
+                  <Image
+                    source={{ uri: selectedPhotos[index] }}
+                    style={styles.previewImage}
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.placeholder} />
+        )}
+      </View>
+    );
+  };
+
+  const renderModeTab = (mode: EditMode, label: string, icon: string) => (
     <TouchableOpacity
       style={[
-        styles.frameItem,
-        { backgroundColor: item.color },
-        selectedFrame === item.id && styles.frameItemSelected,
+        styles.modeTab,
+        editMode === mode && styles.modeTabSelected,
       ]}
-      onPress={() => setSelectedFrame(item.id)}
+      onPress={() => setEditMode(mode)}
     >
+      <MaterialCommunityIcons
+        name={icon as any}
+        size={20}
+        color={editMode === mode ? '#FFFFFF' : '#6C757D'}
+      />
       <CustomText
-        style={[styles.frameText, { color: getContrastTextColor(item.color) }]}
+        style={[
+          styles.modeTabText,
+          editMode === mode && styles.modeTabTextSelected,
+        ]}
       >
-        {item.name}
+        {label}
       </CustomText>
     </TouchableOpacity>
   );
-
-  const currentFrameColor =
-    frames.find((f) => f.id === selectedFrame)?.color || 'black';
-
-  const getFilterOverlay = () => {
-    switch (selectedFilter) {
-      case 'bw':
-        return { backgroundColor: 'rgba(128, 128, 128, 0.3)' };
-      case 'sepia':
-        return { backgroundColor: 'rgba(112, 66, 20, 0.3)' };
-      case 'vintage':
-        return { backgroundColor: 'rgba(139, 69, 19, 0.4)' };
-      case 'cool':
-        return { backgroundColor: 'rgba(0, 150, 255, 0.2)' };
-      case 'warm':
-        return { backgroundColor: 'rgba(255, 165, 0, 0.2)' };
-      default:
-        return {};
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -183,95 +220,147 @@ const FilterFrameScreen = () => {
         <CustomText style={styles.title}>필터 및 프레임 선택</CustomText>
       </View>
 
-      <View style={styles.previewSection}>
-        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
-          <View>
-            <View
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.previewSection}>
+          {/* Before/After 토글 버튼 */}
+          <View style={styles.previewControls}>
+            <TouchableOpacity
               style={[
-                styles.framePreviewContainer,
-                getFrameStyle(),
-                {
-                  borderColor: currentFrameColor,
-                  backgroundColor: currentFrameColor,
-                },
+                styles.beforeAfterButton,
+                beforeAfterMode && styles.beforeAfterButtonActive,
               ]}
+              onPress={() => setBeforeAfterMode(!beforeAfterMode)}
             >
-              {slots.map((_, index) => (
-                <View
-                  key={index}
-                  style={[styles.previewPhotoSlot, getSlotStyle()]}
-                >
-                  {selectedPhotos[index] ? (
-                    <View style={{ position: 'relative' }}>
-                      <Image
-                        source={{ uri: selectedPhotos[index] }}
-                        style={styles.previewImage}
-                      />
-                      {selectedFilter !== 'original' && (
-                        <View
-                          style={[styles.filterOverlay, getFilterOverlay()]}
-                        />
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.placeholder} />
-                  )}
-                </View>
-              ))}
-            </View>
-            <View
-              style={[
-                styles.cutprintLabel,
-                getCutprintLabelStyle(),
-                { backgroundColor: currentFrameColor },
-              ]}
-            >
+              <MaterialCommunityIcons
+                name="compare"
+                size={16}
+                color={beforeAfterMode ? '#FFFFFF' : '#6C757D'}
+              />
               <CustomText
                 style={[
-                  styles.cutprintText,
-                  { color: getContrastTextColor(currentFrameColor) },
+                  styles.beforeAfterText,
+                  beforeAfterMode && styles.beforeAfterTextActive,
                 ]}
               >
-                cutprint
+                전후비교
               </CustomText>
-            </View>
+            </TouchableOpacity>
           </View>
-        </ViewShot>
+
+          {/* 메인 프리뷰 */}
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
+            <View style={styles.previewContainer}>
+              {currentFrame?.type === 'gradient' && currentFrame.style.gradient ? (
+                <LinearGradient
+                  colors={currentFrame.style.gradient.colors as [string, string, ...string[]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.framePreviewContainer,
+                    getFrameStyle(),
+                    applyFrameStyle(currentFrame),
+                  ]}
+                >
+                  {slots.map((_, index) => renderPhotoSlot(index))}
+                </LinearGradient>
+              ) : (
+                <View
+                  style={[
+                    styles.framePreviewContainer,
+                    getFrameStyle(),
+                    currentFrame ? applyFrameStyle(currentFrame) : {},
+                  ]}
+                >
+                  {slots.map((_, index) => renderPhotoSlot(index))}
+                </View>
+              )}
+              
+              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+                <CustomText
+                  style={[
+                    styles.cutprintText,
+                    {
+                      color: getContrastTextColor(
+                        currentFrame?.style.borderColor || '#000000'
+                      ),
+                    },
+                  ]}
+                >
+                  cutprint
+                </CustomText>
+              </View>
+            </View>
+          </ViewShot>
+        </View>
+      </ScrollView>
+
+      {/* 편집 모드 탭 */}
+      <View style={styles.modeTabContainer}>
+        {renderModeTab('filters', '필터', 'camera-enhance')}
+        {renderModeTab('frames', '프레임', 'image-frame')}
+        {renderModeTab('editing', '편집', 'tune')}
       </View>
 
-      <View style={styles.selectionSection}>
-        <CustomText style={styles.sectionTitle}>필터</CustomText>
-        <FlatList
-          data={filters}
-          renderItem={renderFilterItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterListContainer}
-        />
-
-        <CustomText style={styles.sectionTitle}>프레임</CustomText>
-        <FlatList
-          data={frames}
-          renderItem={renderFrameItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.frameListContainer}
-        />
+      {/* 편집 도구 영역 */}
+      <View style={styles.editingSection}>
+        {editMode === 'filters' && (
+          <FilterSelector
+            selectedFilterId={selectedFilter}
+            onFilterSelect={setSelectedFilter}
+          />
+        )}
+        
+        {editMode === 'frames' && (
+          <FrameSelector
+            selectedFrameId={selectedFrame}
+            onFrameSelect={setSelectedFrame}
+          />
+        )}
+        
+        {editMode === 'editing' && (
+          <PhotoEditingTools
+            onToolChange={handleEditingToolChange}
+            currentValues={editingValues}
+            visible={editingToolsVisible}
+            onToggle={() => setEditingToolsVisible(!editingToolsVisible)}
+          />
+        )}
       </View>
 
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={async () => {
-          if (viewShotRef.current?.capture) {
-            const uri = await viewShotRef.current.capture();
-            navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
-          }
-        }}
-      >
-        <CustomText style={styles.nextButtonText}>다음</CustomText>
-      </TouchableOpacity>
+      <View style={styles.bottomActions}>
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={() => {
+            setSelectedFilter('original');
+            setSelectedFrame('no_frame');
+            setEditingValues({});
+            setBeforeAfterMode(false);
+          }}
+        >
+          <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
+          <CustomText style={styles.resetButtonText}>초기화</CustomText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={async () => {
+            if (viewShotRef.current?.capture) {
+              const uri = await viewShotRef.current.capture();
+              navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
+            }
+          }}
+        >
+          <CustomText style={styles.nextButtonText}>완료</CustomText>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -280,6 +369,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     paddingVertical: 20,
@@ -293,10 +385,50 @@ const styles = StyleSheet.create({
     color: '#343A40',
   },
   previewSection: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    minHeight: 400,
+  },
+  previewContainer: {
+    alignItems: 'center',
+  },
+  previewControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  beforeAfterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  beforeAfterButtonActive: {
+    backgroundColor: '#4867B7',
+    borderColor: '#4867B7',
+  },
+  beforeAfterText: {
+    fontSize: 12,
+    color: '#6C757D',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  beforeAfterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  beforeAfterSplit: {
+    flexDirection: 'row',
+  },
+  beforeHalf: {
+    flex: 1,
+    overflow: 'hidden',
   },
   framePreviewContainer: {
     marginBottom: 0,
@@ -384,71 +516,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  selectionSection: {
+  modeTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
-    backgroundColor: '#FFFFFF',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#343A40',
-    marginBottom: 10,
-  },
-  filterListContainer: {
-    paddingBottom: 15,
-  },
-  filterItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#CED4DA',
-    marginRight: 10,
-    backgroundColor: '#F8F9FA',
-  },
-  filterItemSelected: {
-    borderColor: '#4867B7',
-    backgroundColor: '#E0E7FF',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#495057',
-  },
-  frameListContainer: {
-    paddingBottom: 15,
-  },
-  frameItem: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginHorizontal: 5,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
-  frameItemSelected: {
+  modeTabSelected: {
+    backgroundColor: '#4867B7',
     borderColor: '#4867B7',
   },
-  frameText: {
-    // color: 'white', // This will be dynamic now
-    fontSize: 12,
+  modeTabText: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  modeTabTextSelected: {
+    color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  editingSection: {
+    backgroundColor: '#FFFFFF',
+    maxHeight: 300,
+  },
+  bottomActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E9ECEF',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    marginRight: 12,
+  },
+  resetButtonText: {
+    color: '#6C757D',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   nextButton: {
-    backgroundColor: '#000000',
-    padding: 18,
+    flex: 1,
+    backgroundColor: '#4867B7',
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 20,
   },
   nextButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
