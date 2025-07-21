@@ -18,6 +18,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import CustomText from '../components/CustomText';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type RootStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };
@@ -41,6 +42,7 @@ const PreviewAndSaveScreen = () => {
 
   const [friends, setFriends] = useState<{ id: number; name: string }[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
+  const [showFriendSelector, setShowFriendSelector] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -114,32 +116,124 @@ const PreviewAndSaveScreen = () => {
 
       <View style={styles.previewContainer}>
         <Image source={{ uri: imageUri }} style={styles.previewImage} />
-      </View>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 20, marginBottom: 10 }}>
-        {friends.map(friend => (
+        <View style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 10,
+        }}>
           <TouchableOpacity
-            key={friend.id}
-            onPress={() => {
-              setSelectedFriends(prev =>
-                prev.includes(friend.id)
-                  ? prev.filter(id => id !== friend.id)
-                  : [...prev, friend.id]
-              );
-            }}
+            onPress={() => setShowFriendSelector(prev => !prev)}
+            activeOpacity={0.85}
             style={{
-              paddingVertical: 6,
-              paddingHorizontal: 14,
-              margin: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(255,255,255,0.85)',
               borderRadius: 16,
-              backgroundColor: selectedFriends.includes(friend.id) ? '#74c0fc' : '#dee2e6',
+              paddingVertical: 5,
+              paddingHorizontal: 12,
+              shadowColor: '#228be6',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.10,
+              shadowRadius: 3,
+              elevation: 2,
+              borderWidth: 1,
+              borderColor: '#4dabf7',
             }}
           >
-            <Text style={{ color: selectedFriends.includes(friend.id) ? '#fff' : '#343a40', fontSize: 15 }}>
-              {friend.name}
+            <Ionicons name="person-add" size={16} color="#228be6" style={{ marginRight: 4 }} />
+            <Text style={{ color: '#228be6', fontWeight: 'bold', fontSize: 13 }}>
+              친구 선택
             </Text>
           </TouchableOpacity>
-        ))}
+          {showFriendSelector && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 36,
+                right: 0,
+                width: 160,
+                maxHeight: 260,
+                backgroundColor: 'rgba(255,255,255,0.97)',
+                borderRadius: 14,
+                paddingVertical: 8,
+                paddingHorizontal: 0,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.13,
+                shadowRadius: 8,
+                elevation: 6,
+                zIndex: 20,
+              }}
+            >
+              <ScrollView style={{ maxHeight: 180 }}>
+                {friends.length === 0 ? (
+                  <CustomText style={{ color: '#adb5bd', fontSize: 14, textAlign: 'center', marginVertical: 12 }}>
+                    친구가 없습니다.
+                  </CustomText>
+                ) : (
+                  friends.map(friend => {
+                    const selected = selectedFriends.includes(friend.id);
+                    return (
+                      <TouchableOpacity
+                        key={friend.id}
+                        onPress={() => {
+                          setSelectedFriends(prev =>
+                            prev.includes(friend.id)
+                              ? prev.filter(id => id !== friend.id)
+                              : [...prev, friend.id]
+                          );
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 16,
+                          backgroundColor: selected ? '#e7f5ff' : 'transparent',
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#f1f3f5',
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={selected ? 'checkbox' : 'square-outline'}
+                          size={20}
+                          color={selected ? '#228be6' : '#adb5bd'}
+                          style={{ marginRight: 10 }}
+                        />
+                        <Text style={{
+                          color: selected ? '#228be6' : '#343a40',
+                          fontWeight: selected ? 'bold' : 'normal',
+                          fontSize: 15,
+                        }}>
+                          {friend.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+              <TouchableOpacity
+                onPress={() => setShowFriendSelector(false)}
+                style={{
+                  marginTop: 8,
+                  marginHorizontal: 12,
+                  backgroundColor: '#4dabf7',
+                  borderRadius: 10,
+                  paddingVertical: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  elevation: 2,
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>
+                  선택 완료
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -189,6 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    position: 'relative', // 오버레이 버튼을 위해 추가
   },
   previewImage: {
     width: '100%',
