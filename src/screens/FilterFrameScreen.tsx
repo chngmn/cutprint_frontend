@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  TextInput,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -59,6 +60,7 @@ const FilterFrameScreen = () => {
   const [editingToolsVisible, setEditingToolsVisible] = useState(false);
   const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
   const [beforeAfterMode, setBeforeAfterMode] = useState(false);
+  const [labelText, setLabelText] = useState('cutprint');
 
   const requiredCount = getRequiredPhotoCount(cutType);
   const slots = Array.from({ length: requiredCount });
@@ -282,8 +284,7 @@ const FilterFrameScreen = () => {
                   {slots.map((_, index) => renderPhotoSlot(index))}
                 </View>
               )}
-              
-              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}> 
                 <CustomText
                   style={[
                     styles.cutprintText,
@@ -294,11 +295,31 @@ const FilterFrameScreen = () => {
                     },
                   ]}
                 >
-                  cutprint
+                  {labelText}
                 </CustomText>
               </View>
             </View>
           </ViewShot>
+          {/* 사용자 입력창 */}
+          <View style={{ alignItems: 'center', marginVertical: 10 }}>
+            <TextInput
+              value={labelText}
+              onChangeText={setLabelText}
+              style={{
+                borderWidth: 1,
+                borderColor: '#E9ECEF',
+                borderRadius: 8,
+                padding: 8,
+                width: 120,
+                textAlign: 'center',
+                fontSize: 14,
+                backgroundColor: '#fff',
+              }}
+              maxLength={12}
+              placeholder="라벨 입력"
+              placeholderTextColor="#B0B0B0"
+            />
+          </View>
         </View>
       </ScrollView>
 
