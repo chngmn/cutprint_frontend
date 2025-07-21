@@ -1,4 +1,4 @@
-
+//src/navigation/AppNavigator.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -7,6 +7,7 @@ import MainTabNavigator from './MainTabNavigator';
 import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
 import FilterFrameScreen from '../screens/FilterFrameScreen';
 import PreviewAndSaveScreen from '../screens/PreviewAndSaveScreen';
+import AlbumScreen from '../screens/AlbumScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,7 @@ const AppNavigator = () => {
         <Stack.Screen name="PhotoSelection" component={PhotoSelectionScreen} />
         <Stack.Screen name="FilterFrame" component={FilterFrameScreen} />
         <Stack.Screen name="PreviewAndSave" component={PreviewAndSaveScreen} />
+        <Stack.Screen name="Album" component={AlbumScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
