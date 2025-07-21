@@ -12,12 +12,19 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/apiService';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  FriendAlbum: { friendId: number; friendName: string };
+  // ...다른 스크린 타입도 여기에 추가
+};
 
 // --- 인터페이스 정의 ---
 interface Friend {
   id: string;
   name: string;
-  profileImage: string  | null; // 프로필 이미지 URL 추가
+  profileImage: string | null; // 프로필 이미지 URL 추가
   status?: string; // 상태는 선택적으로 변경
 }
 
@@ -31,7 +38,7 @@ interface FriendRequest {
 interface SearchResultUser {
   id: string;
   name: string;
-  profileImage: string | null ; // 프로필 이미지 URL 추가
+  profileImage: string | null; // 프로필 이미지 URL 추가
   isFriend: boolean;
   hasSentRequest: boolean;
   hasReceivedRequest: boolean;
@@ -131,7 +138,7 @@ const FriendsScreen = () => {
               // 보낸 요청 목록에서 해당 사용자 찾기
               const sentRequests = await apiService.getSentFriendRequests();
               const requestToCancel = sentRequests.find(req => req.id === targetUser.id);
-              
+
               if (requestToCancel) {
                 await apiService.cancelFriendRequest(requestToCancel.id);
                 setSearchResults(prevResults =>
@@ -162,11 +169,11 @@ const FriendsScreen = () => {
           onPress: async () => {
             try {
               await apiService.acceptFriendRequest(requestId);
-              
+
               // 친구 목록과 요청 목록 새로고침
               await loadFriends();
               await loadFriendRequests();
-              
+
               const acceptedRequest = friendRequests.find((req) => req.id === requestId);
               if (acceptedRequest) {
                 Alert.alert('완료', `${acceptedRequest.name} 님과 친구가 되었습니다!`);
@@ -209,10 +216,10 @@ const FriendsScreen = () => {
     <View style={styles.listItem}>
       {item.profileImage ? (
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
-      ) : 
-      <View style={styles.profileImage}>
-        <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
-      </View>}
+      ) :
+        <View style={styles.profileImage}>
+          <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
+        </View>}
       <Text style={styles.listItemName}>{item.name}</Text>
       <View style={styles.listItemActions}>
         {item.isFriend ? (
@@ -249,10 +256,10 @@ const FriendsScreen = () => {
     <View style={styles.listItem}>
       {item.profileImage ? (
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
-      ) : 
-      <View style={styles.profileImage}>
-        <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
-      </View>}
+      ) :
+        <View style={styles.profileImage}>
+          <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
+        </View>}
       <Text style={styles.listItemName}>{item.name}</Text>
       <View style={styles.listItemActions}>
         {item.status === 'pending' ? (
@@ -279,26 +286,31 @@ const FriendsScreen = () => {
 
   // 내 친구 아이템 렌더링
   const renderFriendItem: ListRenderItem<Friend> = ({ item }) => (
-    <View style={styles.listItem}>
+    <TouchableOpacity
+      style={styles.listItem}
+      onPress={() => navigation.navigate('FriendAlbum', { friendId: parseInt(item.id), friendName: item.name })}
+    >
       {item.profileImage ? (
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
-      ) : 
-      <View style={styles.profileImage}>
-        <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
-      </View>}
-      
+      ) :
+        <View style={styles.profileImage}>
+          <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
+        </View>}
+
       <Text style={styles.listItemName}>{item.name}</Text>
       {item.status && <Text style={styles.statusText}>{item.status}</Text>}
-    </View>
+    </TouchableOpacity>
   );
+
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={styles.container}>
       {/* <View style={styles.header}> */}
-        {/* <Text style={styles.title}>친구</Text> */}
-        {/* <TouchableOpacity style={styles.headerIcon}> */}
-          {/* <MaterialCommunityIcons name="cog-outline" size={24} color="#555" /> 설정 아이콘 추가 */}
-        {/* </TouchableOpacity> */}
+      {/* <Text style={styles.title}>친구</Text> */}
+      {/* <TouchableOpacity style={styles.headerIcon}> */}
+      {/* <MaterialCommunityIcons name="cog-outline" size={24} color="#555" /> 설정 아이콘 추가 */}
+      {/* </TouchableOpacity> */}
       {/* </View> */}
 
       {/* 검색창 */}

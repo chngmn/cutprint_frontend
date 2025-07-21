@@ -115,6 +115,11 @@ class ApiService {
     return this.makeRequest('/photos/my-photos');
   }
 
+  // 특정 사용자 사진 목록 조회
+  async getUserPhotos(userId: number): Promise<any[]> {
+    return this.makeRequest(`/photos/user/${userId}`);
+  }
+
   // 사진 삭제
   async deletePhoto(photoId: number): Promise<any> {
     return this.makeRequest(`/photos/${photoId}`, {

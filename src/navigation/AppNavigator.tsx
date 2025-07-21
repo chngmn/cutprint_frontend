@@ -7,8 +7,18 @@ import MainTabNavigator from './MainTabNavigator';
 import PhotoSelectionScreen from '../screens/PhotoSelectionScreen';
 import FilterFrameScreen from '../screens/FilterFrameScreen';
 import PreviewAndSaveScreen from '../screens/PreviewAndSaveScreen';
+import FriendAlbumScreen from '../screens/FriendAlbumScreen';
 
-const Stack = createStackNavigator();
+export type RootStackParamList = {
+  Login: undefined;
+  Main: undefined;
+  PhotoSelection: undefined;
+  FilterFrame: undefined;
+  PreviewAndSave: undefined;
+  FriendAlbum: { friendId: number; friendName: string };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   return (
@@ -19,6 +29,7 @@ const AppNavigator = () => {
         <Stack.Screen name="PhotoSelection" component={PhotoSelectionScreen} />
         <Stack.Screen name="FilterFrame" component={FilterFrameScreen} />
         <Stack.Screen name="PreviewAndSave" component={PreviewAndSaveScreen} />
+        <Stack.Screen name="FriendAlbum" component={FriendAlbumScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
