@@ -55,6 +55,7 @@ export default function AlbumScreen() {
     }
   }, [refresh]);
 
+
   const handleDeletePhoto = async (photo: Photo) => {
     Alert.alert(
       '사진 삭제',
@@ -76,6 +77,8 @@ export default function AlbumScreen() {
             } finally {
               setLoading(null);
               setShowActionMenu(false);
+              setSelectedPhotoForAction(null);
+              setSelectedPhoto(null); // 삭제 후에는 전체화면도 닫기
             }
           },
         },
@@ -102,6 +105,7 @@ export default function AlbumScreen() {
     } finally {
       setLoading(null);
       setShowActionMenu(false);
+      setSelectedPhotoForAction(null);
     }
   };
 
@@ -131,6 +135,7 @@ export default function AlbumScreen() {
     } finally {
       setLoading(null);
       setShowActionMenu(false);
+      setSelectedPhotoForAction(null);
     }
   };
 
@@ -163,6 +168,7 @@ export default function AlbumScreen() {
     } finally {
       setLoading(null);
       setShowActionMenu(false);
+      setSelectedPhotoForAction(null);
     }
   };
 
@@ -228,28 +234,18 @@ export default function AlbumScreen() {
               }
 
               return (
-                <View
+                <TouchableOpacity
                   key={photo.id}
-                  style={{ width: photoWidth, height: calculatedHeight, marginHorizontal: GAP / 2, position: 'relative' }}
+                  style={{ width: photoWidth, height: calculatedHeight, marginHorizontal: GAP / 2 }}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedPhoto(photo)}
                 >
-                  <TouchableOpacity
-                    style={styles.imageContainer}
-                    activeOpacity={0.8}
-                    onPress={() => setSelectedPhoto(photo)}
-                  >
-                    <Image
-                      source={{ uri: photo.url }}
-                      style={styles.image}
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => openActionMenu(photo)}
-                  >
-                    <MaterialCommunityIcons name="dots-vertical" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+                  <Image
+                    source={{ uri: photo.url }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -257,13 +253,20 @@ export default function AlbumScreen() {
       </ScrollView>
 
       {/* 전체화면 모달 */}
-      {selectedPhoto && (
+      {selectedPhoto && !showActionMenu && (
         <Modal
           visible={true}
           transparent={true}
           onRequestClose={() => setSelectedPhoto(null)}
         >
-          <Pressable style={styles.modalBackground} onPress={() => setSelectedPhoto(null)}>
+          <Pressable 
+            style={styles.modalBackground} 
+            onPress={() => {
+              if (!showActionMenu) {
+                setSelectedPhoto(null);
+              }
+            }}
+          >
             <Image
               source={{ uri: selectedPhoto.url }}
               style={styles.fullImage}
@@ -271,9 +274,14 @@ export default function AlbumScreen() {
             />
             <TouchableOpacity
               style={styles.fab}
-              onPress={() => Alert.alert('알림', '이 사진은 앱 앨범에 저장되어 있습니다.')}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (selectedPhoto) {
+                  openActionMenu(selectedPhoto);
+                }
+              }}
             >
-              <MaterialCommunityIcons name="information-outline" size={28} color="#fff" />
+              <MaterialCommunityIcons name="dots-vertical" size={28} color="#fff" />
             </TouchableOpacity>
           </Pressable>
         </Modal>
@@ -287,7 +295,10 @@ export default function AlbumScreen() {
           animationType="fade"
           onRequestClose={() => setShowActionMenu(false)}
         >
-          <Pressable style={styles.actionModalBackground} onPress={() => setShowActionMenu(false)}>
+          <Pressable style={styles.actionModalBackground} onPress={() => {
+            setShowActionMenu(false);
+            setSelectedPhotoForAction(null);
+          }}>
             <View style={styles.actionMenu}>
               <Text style={styles.actionMenuTitle}>사진 옵션</Text>
               
@@ -329,7 +340,10 @@ export default function AlbumScreen() {
 
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowActionMenu(false)}
+                onPress={() => {
+                  setShowActionMenu(false);
+                  setSelectedPhotoForAction(null);
+                }}
               >
                 <Text style={styles.cancelButtonText}>취소</Text>
               </TouchableOpacity>
@@ -353,24 +367,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
 
   },
-  imageContainer: {
-    flex: 1,
-  },
   image: {
     flex: 1,
     borderRadius: 2,
     backgroundColor: '#ddd',
-  },
-  actionButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalBackground: {
     flex: 1,
@@ -410,15 +410,16 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#34495E',
-    // backgroundColor: '#FF9500',
+    backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 6
+    elevation: 6,
+    // 터치 영역 확장
+    padding: 8,
   },
   // Action Menu Styles
   actionModalBackground: {
@@ -426,6 +427,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
   actionMenu: {
     backgroundColor: '#fff',
@@ -438,6 +440,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 8,
+    zIndex: 1001,
   },
   actionMenuTitle: {
     fontSize: 18,
