@@ -420,8 +420,8 @@ const styles = StyleSheet.create({
   previewSection: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    minHeight: 400, // Ensure enough space for preview
+    padding: 10,
+    minHeight: 300, // Ensure enough space for preview
   },
   previewContainer: {
     alignItems: 'center',
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   previewControls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 15,
+    // marginBottom: 15,
     paddingHorizontal: 10,
     width: '100%', // Ensure controls span full width
   },
@@ -554,6 +554,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
+    // paddingTop: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
   bottomActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',

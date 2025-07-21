@@ -270,12 +270,12 @@ const FrameSelector: React.FC<FrameSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
+    // paddingVertical: 10,
   },
   selectedFrameInfo: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+    paddingVertical: 5,
+    // borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
   },
   selectedFrameName: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   categoryContainer: {
-    paddingVertical: 10,
+    paddingVertical: 5,
   },
   categoryList: {
     paddingHorizontal: 15,
@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
   categoryTab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
     marginHorizontal: 5,
     borderRadius: 20,
     backgroundColor: '#F8F9FA',
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     borderColor: '#4867B7',
   },
   categoryIcon: {
-    fontSize: 16,
+    fontSize: 12,
     marginBottom: 2,
   },
   categoryText: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   frameContainer: {
-    paddingVertical: 15,
+    paddingVertical: 10,
   },
   frameList: {
     paddingHorizontal: 15,
