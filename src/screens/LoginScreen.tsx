@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  SafeAreaView,
+  ScrollView,
+  Dimensions
+} from 'react-native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser'; // WebBrowser import 추가
+import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import Theme from '../constants/theme';
 
 // 중요: 웹 브라우저가 자동으로 닫히도록 설정
 WebBrowser.maybeCompleteAuthSession();
+
+const { width, height } = Dimensions.get('window');
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
 
 type RootStackParamList = {
   Main: undefined;
@@ -29,7 +51,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(false); // Google 로그인 과정의 로딩 상태
-  const [nickname, setNickname] = useState('');  
+  const [nickname, setNickname] = useState('');
   const [needsNickname, setNeedsNickname] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -83,7 +105,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         Alert.alert('Google 로그인 오류', '로그인에 실패했습니다. 메인 화면으로 이동합니다.');
         setLoading(false); // 로딩 상태를 false로 설정
         navigation.replace('Main'); // Main 화면으로 이동
-      } else if (response.type === 'dismiss' || response.type === 'cancel' ) {
+      } else if (response.type === 'dismiss' || response.type === 'cancel') {
         // 사용자가 로그인 창을 닫았을 때 (취소)
         console.log('Login Dismissed by user.');
         Alert.alert('로그인 취소', 'Google 로그인이 취소되었습니다. 메인 화면으로 이동합니다.');
@@ -112,7 +134,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setUserInfo(user); // 가져온 사용자 정보 저장
       console.log('Google 로그인 성공:', user);
 
-      if(!user.nickname) {
+      if (!user.nickname) {
         setNeedsNickname(true);
       } else {
         // 실제 앱에서는 여기서 사용자 정보를 서버에 전송하고,
@@ -142,12 +164,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const handleGoogleSignIn = () => {
     if (request) {
       setLoading(true); // 버튼 클릭 시 로딩 시작
-      promptAsync({useProxy:true} as any); // Google 로그인 프롬프트 실행
+      promptAsync({ useProxy: true } as any); // Google 로그인 프롬프트 실행
     } else {
       Alert.alert('오류', 'Google 로그인 요청을 준비할 수 없습니다. 클라이언트 ID를 확인해주세요.');
     }
   };
-  
+
   const BACKEND_URL = 'http://192.249.27.137:3000'; // 실제 배포시 주소로 변경
 
   const handleSignup = async () => {
@@ -171,7 +193,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       });
       if (!res.ok) {
         let errMsg = '회원가입 실패';
-        try { const err = await res.json(); errMsg = err.message || errMsg; } catch {}
+        try { const err = await res.json(); errMsg = err.message || errMsg; } catch { }
         throw new Error(errMsg);
       }
       Alert.alert('회원가입 성공', '이제 로그인 해주세요!');
@@ -201,7 +223,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       });
       if (!res.ok) {
         let errMsg = '로그인 실패';
-        try { const err = await res.json(); errMsg = err.message || errMsg; } catch {}
+        try { const err = await res.json(); errMsg = err.message || errMsg; } catch { }
         throw new Error(errMsg);
       }
       const data = await res.json();
@@ -215,27 +237,75 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       Alert.alert('로그인 오류', err.message);
     }
   };
-  
+
   return (
-    <View style={styles.container}>
-      <View style={styles.centerContent}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.title}>Cutprint</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Hero Section */}
+      <View style={styles.heroSection}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoBackground}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} />
+          </View>
+          <Text style={styles.appTitle}>Cutprint</Text>
+          <Text style={styles.appSubtitle}>
+            당신의 순간을 기록하는 작은 부스
+          </Text>
+        </View>
       </View>
 
-      {/* 일반 회원가입/로그인 버튼 추가 */}
-      <TouchableOpacity
-        style={styles.loginButton}
-        onPress={() => setShowSignup(true)}
-      >
-        <Text style={styles.loginButtonText}>회원가입</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.loginButton}
-        onPress={() => setShowLogin(true)}
-      >
-        <Text style={styles.loginButtonText}>로그인</Text>
-      </TouchableOpacity>
+      {/* Action Section */}
+      <View style={styles.actionSection}>
+        <View style={styles.buttonContainer}>
+          {/* Primary Button */}
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => setShowSignup(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>Get Started</Text>
+          </TouchableOpacity>
+
+          {/* Secondary Button */}
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setShowLogin(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryButtonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Login Button */}
+          <TouchableOpacity
+            style={[styles.googleButton, (!request || loading) && styles.disabledButton]}
+            onPress={handleGoogleSignIn}
+            disabled={!request || loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={Colors.textSecondary} />
+            ) : (
+              <>
+                <View style={styles.googleIconContainer}>
+                  <Image
+                    source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                    style={styles.googleIcon}
+                  />
+                </View>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* 회원가입 모달 */}
       <Modal
@@ -249,10 +319,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>회원가입</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Create Account</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowSignup(false)}
+              >
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.nicknameInput}
               placeholder="이메일"
+              placeholderTextColor={Colors.textSecondary}
               value={signupEmail}
               onChangeText={setSignupEmail}
               keyboardType="email-address"
@@ -261,6 +340,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="닉네임"
+              placeholderTextColor={Colors.textSecondary}
               value={signupNickname}
               onChangeText={setSignupNickname}
               autoCapitalize="none"
@@ -268,6 +348,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호"
+              placeholderTextColor={Colors.textSecondary}
               value={signupPassword}
               onChangeText={setSignupPassword}
               secureTextEntry
@@ -275,24 +356,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호 확인"
+              placeholderTextColor={Colors.textSecondary}
               value={signupPasswordConfirm}
               onChangeText={setSignupPasswordConfirm}
               secureTextEntry
             />
-            <View style={{ flexDirection: 'row', marginTop: 20 }}>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, marginRight: 8 }]}
-                onPress={handleSignup}
-              >
-                <Text style={styles.submitButtonText}>확인</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, backgroundColor: '#ccc', marginLeft: 8 }]}
-                onPress={() => setShowSignup(false)}
-              >
-                <Text style={[styles.submitButtonText, { color: '#333' }]}>취소</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.modalSubmitButton}
+              onPress={handleSignup}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalSubmitButtonText}>Create Account</Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -309,10 +384,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>로그인</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sign In</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowLogin(false)}
+              >
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.nicknameInput}
               placeholder="이메일"
+              placeholderTextColor={Colors.textSecondary}
               value={loginEmail}
               onChangeText={setLoginEmail}
               keyboardType="email-address"
@@ -321,46 +405,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호"
+              placeholderTextColor={Colors.textSecondary}
               value={loginPassword}
               onChangeText={setLoginPassword}
               secureTextEntry
             />
-            <View style={{ flexDirection: 'row', marginTop: 20 }}>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, marginRight: 8 }]}
-                onPress={handleLogin}
-              >
-                <Text style={styles.submitButtonText}>확인</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, { flex: 1, backgroundColor: '#ccc', marginLeft: 8 }]}
-                onPress={() => setShowLogin(false)}
-              >
-                <Text style={[styles.submitButtonText, { color: '#333' }]}>취소</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.modalSubmitButton}
+              onPress={handleLogin}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalSubmitButtonText}>Sign In</Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-
-      {/* Google 로그인 버튼 */}
-      <TouchableOpacity
-        style={[styles.googleLoginButton, (!request || loading) && styles.disabledButton]}
-        onPress={handleGoogleSignIn}
-        disabled={!request || loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#4285F4" />
-        ) : (
-          <>
-            <Image
-              source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-              style={styles.googleIcon}
-            />
-            <Text style={styles.googleLoginButtonText}>Google로 시작하기</Text>
-          </>
-        )}
-      </TouchableOpacity>
 
       {/* 닉네임 입력용 모달 */}
       <Modal
@@ -374,42 +433,41 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>닉네임을 설정해주세요</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Set Your Nickname</Text>
+            </View>
             <TextInput
               style={styles.nicknameInput}
               placeholder="닉네임 입력"
+              placeholderTextColor={Colors.textSecondary}
               value={nickname}
               onChangeText={setNickname}
               maxLength={50}
             />
             <TouchableOpacity
-              style={styles.submitButton}
+              style={styles.modalSubmitButton}
               onPress={async () => {
                 if (!nickname.trim()) {
-                  return Alert.alert('닉네임을 입력해주세요');
+                  return Alert.alert('Please enter a nickname');
                 }
                 try {
-                  // await fetch('/api/users/me', {
-                  //   method: 'PATCH',
-                  //   headers: { 'Content-Type': 'application/json' },
-                  //   body: JSON.stringify({ nickname }),
-                  // });
                   await AsyncStorage.setItem('nickname', nickname);
-                  console.log('설정된 닉네임',AsyncStorage.getItem('nickname'));
+                  console.log('설정된 닉네임', AsyncStorage.getItem('nickname'));
                   setNeedsNickname(false);
                   navigation.replace('Main');
                 } catch {
-                  Alert.alert('저장에 실패했습니다');
+                  Alert.alert('Failed to save nickname');
                 }
               }}
+              activeOpacity={0.8}
             >
-              <Text style={styles.submitText}>완료</Text>
+              <Text style={styles.modalSubmitButtonText}>Continue</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      
+
       {/* Google 로그인 성공 시 사용자 정보 표시 (개발/디버깅용, 실제 앱에서는 제거 또는 다른 화면으로 이동) */}
       {/* {userInfo && (
         <View style={styles.userInfoContainer}>
@@ -420,152 +478,195 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           )}
         </View>
       )} */}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  // Main Container
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 60,
   },
-  centerContent: {
+
+  // Hero Section
+  heroSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingTop: Spacing.lg,
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logoBackground: {
+    width: 120,
+    height: 120,
+    borderRadius: 18,
+    backgroundColor: Colors.gray50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
   logo: {
-    width: 121,
-    height: 121,
-    marginBottom: 16,
+    width: 90,
+    height: 90,
   },
-  title: {
-    fontSize: 45,
-    fontWeight: '700',
-    fontFamily: 'Pretendard',
-    color: '#000',
+  appTitle: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
-  loginButton: {
-    backgroundColor: '#599EF1',
-    width: 226,
-    height: 51,
-    borderRadius: 12,
-    justifyContent: 'center',
+  appSubtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.sm,
+    maxWidth: 240,
+  },
+
+  // Action Section
+  actionSection: {
+    paddingHorizontal: Spacing.containerPadding,
+    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.md,
+  },
+  buttonContainer: {
+    gap: Spacing.sm,
+  },
+
+  // Primary Button
+  primaryButton: {
+    backgroundColor: Colors.textPrimary,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 10, // Google 버튼과의 간격 조정을 위해 기존 40에서 10으로 줄임
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 25,
-    fontWeight: '400',
-    fontFamily: 'Pretendard',
-  },
-  // Google 로그인 버튼을 위한 새로운 스타일
-  googleLoginButton: {
-    flexDirection: 'row', // 아이콘과 텍스트를 가로로 배열
-    backgroundColor: '#fff', // Google 버튼은 흰색 배경이 일반적
-    width: 226,
-    height: 51,
-    borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 40, // 하단 여백 유지
-    borderColor: '#ccc', // 테두리 색상
-    borderWidth: 1, // 테두리 두께
-    boxShadow: '0px 2px 3px rgba(0,0,0,0.1)',
-    elevation: 3, // Android용 그림자
   },
-  disabledButton: {
-    opacity: 0.6, // 비활성화된 버튼의 투명도
+  primaryButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+
+  // Secondary Button
+  secondaryButton: {
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
+  },
+
+  // Divider
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.gray200,
+  },
+  dividerText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginHorizontal: Spacing.lg,
+  },
+
+  // Google Button
+  googleButton: {
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleIconContainer: {
+    marginRight: Spacing.sm,
   },
   googleIcon: {
-    width: 24, // Google 아이콘 크기
-    height: 24,
-    marginRight: 10, // 아이콘과 텍스트 사이 간격
+    width: 20,
+    height: 20,
   },
-  googleLoginButtonText: {
-    color: '#000', // Google 버튼 텍스트 색상 (일반적으로 검정 또는 진한 회색)
-    fontSize: 18, // Google 버튼 텍스트 크기
-    fontWeight: '500',
-    fontFamily: 'Pretendard', // 이 폰트가 로드되었는지 확인하세요.
+  googleButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
-  // 디버깅용 사용자 정보 컨테이너 (주석 처리됨)
-  userInfoContainer: {
-    marginTop: 20,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-    alignItems: 'center',
+  disabledButton: {
+    opacity: 0.5,
   },
-  userInfoText: {
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  userPicture: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginTop: 10,
-  },
+
+  // Modal Styles
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',  // 반투명 검정
+    backgroundColor: Colors.overlayDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // 모달 내부 컨테이너
   modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    width: width * 0.9,
+    maxWidth: 400,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
+    ...Shadow.large,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
   modalTitle: {
-    fontSize: 18,
-    marginBottom: 12,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
   },
-  nicknameContainer: {
-    width: '80%',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  label: {
-    fontSize: 18,
-    marginBottom: 8,
+  closeButton: {
+    padding: Spacing.xs,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.gray100,
   },
   nicknameInput: {
-    width: '100%',
-    height: 44,
-    borderColor: '#ccc',
+    height: 56,
+    backgroundColor: Colors.surfaceVariant,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    borderColor: 'transparent',
   },
-  submitButton: {
-    width: '100%',
-    backgroundColor: '#599EF1',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+  modalSubmitButton: {
+    backgroundColor: Colors.textPrimary,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
   },
-  submitText: {
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 16,
-  },
-  submitButtonText: { // 회원가입/로그인 모달에 사용될 텍스트 스타일
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 16,
+  modalSubmitButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
   },
 });
 
