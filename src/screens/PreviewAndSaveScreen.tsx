@@ -29,6 +29,9 @@ type PreviewAndSaveScreenRouteProp = RouteProp<
 
 type PreviewAndSaveScreenNavigationProp = StackNavigationProp<any>;
 
+import * as FileSystem from 'expo-file-system';
+import { apiService } from '../services/apiService';
+
 const PreviewAndSaveScreen = () => {
   const route = useRoute<PreviewAndSaveScreenRouteProp>();
   const navigation = useNavigation<PreviewAndSaveScreenNavigationProp>();
@@ -36,11 +39,17 @@ const PreviewAndSaveScreen = () => {
 
   const saveToAlbum = async () => {
     try {
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await apiService.uploadPhoto(base64);
+
       // @ts-ignore
-      navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType } });
+      navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType, refresh: true } });
       Alert.alert('저장 완료', '사진이 앱 앨범에 저장되었습니다.');
     } catch (error) {
-      console.error('Error navigating to AlbumScreen:', error);
+      console.error('Error saving photo to album:', error);
       Alert.alert('오류', '사진을 앱 앨범에 저장하는 중 오류가 발생했습니다.');
     }
   };

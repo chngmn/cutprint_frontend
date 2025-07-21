@@ -3,7 +3,8 @@ import { ScrollView, Image, StyleSheet, Dimensions, View, Modal, Pressable, Touc
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { apiService } from '../services/apiService';
 
 type FrameType = '1x4' | '2x2' | '3x2' | 'Vertical 4-cut' | '4-cut grid' | '6-cut grid';
 interface Photo { id: string; url: string; frameType: FrameType; }
@@ -22,26 +23,32 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 export default function AlbumScreen() {
   const route = useRoute();
-  const { newImageUri, frameType } = (route.params || {}) as { newImageUri?: string; frameType?: FrameType };
+  const { newImageUri, frameType, refresh } = (route.params || {}) as { newImageUri?: string; frameType?: FrameType, refresh?: boolean };
 
-  const [appPhotos, setAppPhotos] = useState<Photo[]>([
-    { id: 'mock1', url: 'https://via.placeholder.com/70x270/FF0000/FFFFFF?text=Vertical+4-cut', frameType: 'Vertical 4-cut' },
-    { id: 'mock2', url: 'https://via.placeholder.com/140x240/00FF00/FFFFFF?text=4-cut+grid', frameType: '4-cut grid' },
-    { id: 'mock3', url: 'https://via.placeholder.com/70x270/0000FF/FFFFFF?text=1x4', frameType: '1x4' },
-    { id: 'mock4', url: 'https://via.placeholder.com/140x240/FFFF00/000000?text=6-cut+grid', frameType: '6-cut grid' },
-    { id: 'mock5', url: 'https://via.placeholder.com/140x240/FF00FF/FFFFFF?text=2x2', frameType: '2x2' },
-    { id: 'mock6', url: 'https://via.placeholder.com/140x240/00FFFF/000000?text=3x2', frameType: '3x2' },
-  ]);
+  const [appPhotos, setAppPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
-  useEffect(() => {
-    if (newImageUri && frameType) {
-      setAppPhotos(prevPhotos => [
-        { id: Date.now().toString(), url: newImageUri, frameType: frameType },
-        ...prevPhotos,
-      ]);
+  const fetchPhotos = async () => {
+    try {
+      const photos = await apiService.getMyPhotos();
+      setAppPhotos(photos.map(p => ({ ...p, frameType: '2x2' }))); // Assuming a default frameType for now
+    } catch (error) {
+      console.error('Error fetching photos:', error);
+      Alert.alert('오류', '사진을 불러오는 중 오류가 발생했습니다.');
     }
-  }, [newImageUri, frameType]);
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPhotos();
+    }, [])
+  );
+
+  useEffect(() => {
+    if (refresh) {
+      fetchPhotos();
+    }
+  }, [refresh]);
 
   // 전체 사용 가능한 화면 너비 (마진 제외)
   const availableWidth = width - GAP * 2;
