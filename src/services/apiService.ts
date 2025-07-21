@@ -101,6 +101,26 @@ class ApiService {
     });
     return response;
   }
+
+  // 사진 업로드 (base64)
+  async uploadPhoto(base64Image: string): Promise<any> {
+    return this.makeRequest('/photos/upload-base64', {
+      method: 'POST',
+      body: JSON.stringify({ image: base64Image }),
+    });
+  }
+
+  // 내 사진 목록 조회
+  async getMyPhotos(): Promise<any[]> {
+    return this.makeRequest('/photos/my-photos');
+  }
+
+  // 사진 삭제
+  async deletePhoto(photoId: number): Promise<any> {
+    return this.makeRequest(`/photos/${photoId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiService = new ApiService();
