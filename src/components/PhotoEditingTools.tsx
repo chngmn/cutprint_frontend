@@ -75,7 +75,7 @@ const editingTools: EditingTool[] = [
   {
     id: 'tint',
     name: '색조',
-    icon: 'color-lens',
+    icon: 'palette',
     min: -100,
     max: 100,
     default: 0,
@@ -218,7 +218,7 @@ const PhotoEditingTools: React.FC<PhotoEditingToolsProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <View style={styles.sliderWrapper}>
           <CustomText style={styles.sliderMin}>{tool.min}</CustomText>
           <Slider
