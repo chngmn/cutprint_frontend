@@ -121,9 +121,13 @@ export default function AlbumScreen() {
         width: 612, // A4 width in points
         height: 792, // A4 height in points
       });
-    } catch (error) {
-      console.error('Error printing photo:', error);
-      Alert.alert('오류', '사진 인쇄 중 오류가 발생했습니다.');
+    } catch (e: any) {
+      if (e.message === 'Printing did not complete') {
+        // 사용자가 취소한 경우: 무시하거나 안내 메시지
+      } else {
+        // 그 외 에러는 로그
+        console.error('Printing error:', e);
+      }
     } finally {
       setLoading(null);
       setShowActionMenu(false);
