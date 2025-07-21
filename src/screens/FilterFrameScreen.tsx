@@ -327,7 +327,7 @@ const FilterFrameScreen = () => {
       <View style={styles.modeTabContainer}>
         {renderModeTab('filters', '필터', 'camera-enhance')}
         {renderModeTab('frames', '프레임', 'image-frame')}
-        {renderModeTab('editing', '편집', 'tune')}
+        {/* {renderModeTab('editing', '편집', 'tune')} */}
       </View>
 
       {/* 편집 도구 영역 */}
@@ -346,14 +346,14 @@ const FilterFrameScreen = () => {
           />
         )}
         
-        {editMode === 'editing' && (
+        {/* {editMode === 'editing' && (
           <PhotoEditingTools
             onToolChange={handleEditingToolChange}
             currentValues={editingValues}
             visible={editingToolsVisible}
             onToggle={() => setEditingToolsVisible(!editingToolsVisible)}
           />
-        )}
+        )} */}
       </View>
 
       <View style={styles.bottomActions}>
