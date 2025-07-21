@@ -103,10 +103,10 @@ class ApiService {
   }
 
   // 사진 업로드 (base64)
-  async uploadPhoto(base64Image: string): Promise<any> {
+  async uploadPhoto(base64Image: string, friendIds?: number[]): Promise<any> {
     return this.makeRequest('/photos/upload-base64', {
       method: 'POST',
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, friendIds }),
     });
   }
 

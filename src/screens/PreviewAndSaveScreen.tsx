@@ -1,5 +1,5 @@
 //src/screens/PreviewAndSaveScreen.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   SafeAreaView,
+  ScrollView,
+  Text,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
@@ -37,16 +39,31 @@ const PreviewAndSaveScreen = () => {
   const navigation = useNavigation<PreviewAndSaveScreenNavigationProp>();
   const { imageUri, cutType } = route.params;
 
+  const [friends, setFriends] = useState<{ id: number; name: string }[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
+
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const data = await apiService.getFriends();
+        setFriends(data); // [{id, name}...]
+      } catch (error) {
+        console.error('친구 목록 불러오기 실패:', error);
+      }
+    };
+    fetchFriends();
+  }, []);
+
   const saveToAlbum = async () => {
     try {
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      await apiService.uploadPhoto(base64);
+      await apiService.uploadPhoto(base64, selectedFriends);
 
       // @ts-ignore
-      navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType, refresh: true } });
+      navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType, refresh: true, friends: selectedFriends } });
       Alert.alert('저장 완료', '사진이 앱 앨범에 저장되었습니다.');
     } catch (error) {
       console.error('Error saving photo to album:', error);
@@ -97,6 +114,32 @@ const PreviewAndSaveScreen = () => {
 
       <View style={styles.previewContainer}>
         <Image source={{ uri: imageUri }} style={styles.previewImage} />
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 20, marginBottom: 10 }}>
+        {friends.map(friend => (
+          <TouchableOpacity
+            key={friend.id}
+            onPress={() => {
+              setSelectedFriends(prev =>
+                prev.includes(friend.id)
+                  ? prev.filter(id => id !== friend.id)
+                  : [...prev, friend.id]
+              );
+            }}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 14,
+              margin: 4,
+              borderRadius: 16,
+              backgroundColor: selectedFriends.includes(friend.id) ? '#74c0fc' : '#dee2e6',
+            }}
+          >
+            <Text style={{ color: selectedFriends.includes(friend.id) ? '#fff' : '#343a40', fontSize: 15 }}>
+              {friend.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.buttonContainer}>
