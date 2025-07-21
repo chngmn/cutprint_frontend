@@ -354,6 +354,7 @@ const styles = StyleSheet.create({
   frameInner: {
     flex: 1,
     backgroundColor: '#E9ECEF',
+    // backgroundColor: '#FFFFFF',
     margin: 8,
     borderRadius: 4,
   },
