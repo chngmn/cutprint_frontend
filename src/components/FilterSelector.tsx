@@ -197,12 +197,12 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
+    // paddingVertical: 10,
   },
   selectedFilterInfo: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+    paddingHorizontal: 25,
+    paddingVertical: 5,
+    // borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
   },
   selectedFilterName: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     color: '#6C757D',
   },
   categoryContainer: {
-    paddingVertical: 10,
+    paddingVertical: 5,
   },
   categoryList: {
     paddingHorizontal: 15,
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
   categoryTab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
     marginHorizontal: 5,
     borderRadius: 20,
     backgroundColor: '#F8F9FA',
@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
     borderColor: '#4867B7',
   },
   categoryIcon: {
-    fontSize: 16,
-    marginBottom: 2,
+    fontSize: 12,
+    // marginBottom: 2,
   },
   categoryText: {
     fontSize: 12,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   filterContainer: {
-    paddingVertical: 15,
+    paddingVertical: 10,
   },
   filterList: {
     paddingHorizontal: 15,

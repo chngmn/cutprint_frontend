@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  TextInput,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+// Assuming these components are available in your project structure
 import CustomText from '../components/CustomText';
 import FilterSelector from '../components/FilterSelector';
 import FrameSelector from '../components/FrameSelector';
-import PhotoEditingTools from '../components/PhotoEditingTools';
+// import PhotoEditingTools from './components/PhotoEditingTools'; // Removed as per request
 import { getFilterById, applyFilterToStyle } from '../utils/filterEffects';
 import { getFrameById, applyFrameStyle } from '../utils/frameStyles';
 
@@ -30,8 +32,8 @@ type FilterFrameNavigationProp = StackNavigationProp<
   'FilterFrame'
 >;
 
-// 편집 모드 타입
-type EditMode = 'filters' | 'frames' | 'editing';
+// Define the type for active editing sections
+type ActiveSection = 'filters' | 'frames' | null;
 
 const getRequiredPhotoCount = (cutType: string): number => {
   switch (cutType) {
@@ -55,18 +57,40 @@ const FilterFrameScreen = () => {
 
   const [selectedFilter, setSelectedFilter] = useState<string>('original');
   const [selectedFrame, setSelectedFrame] = useState<string>('no_frame');
-  const [editMode, setEditMode] = useState<EditMode>('filters');
-  const [editingToolsVisible, setEditingToolsVisible] = useState(false);
-  const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
+  // State to manage which editing section is active (filters, frames, or none)
+  const [activeSection, setActiveSection] = useState<ActiveSection>(null);
   const [beforeAfterMode, setBeforeAfterMode] = useState(false);
+  const [labelText, setLabelText] = useState('cutprint');
+
+  // Animated value for the height of the editing panel
+  const animatedPanelHeight = useRef(new Animated.Value(0)).current;
 
   const requiredCount = getRequiredPhotoCount(cutType);
   const slots = Array.from({ length: requiredCount });
   const viewShotRef = useRef<ViewShot>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)).current; // For potential future scroll animations
 
   const currentFilter = getFilterById(selectedFilter);
   const currentFrame = getFrameById(selectedFrame);
+
+  // Effect to animate the panel height based on activeSection
+  useEffect(() => {
+    if (activeSection) {
+      // Animate to a specific height when a section is active
+      Animated.timing(animatedPanelHeight, {
+        toValue: 200, // This value should be adjusted based on the actual height of your FilterSelector/FrameSelector
+        duration: 300,
+        useNativeDriver: false, // Height animation does not support native driver
+      }).start();
+    } else {
+      // Animate to 0 height when no section is active
+      Animated.timing(animatedPanelHeight, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [activeSection]); // Re-run animation when activeSection changes
 
   const getFrameStyle = () => {
     const baseStyle = {
@@ -115,9 +139,7 @@ const FilterFrameScreen = () => {
     };
   };
 
-  const handleEditingToolChange = (toolId: string, value: number) => {
-    setEditingValues(prev => ({ ...prev, [toolId]: value }));
-  };
+  // Removed handleEditingToolChange and editingValues as PhotoEditingTools is commented out
 
   const getContrastTextColor = (hexColor: string) => {
     if (!hexColor || hexColor.length < 7) return '#FFFFFF';
@@ -134,15 +156,10 @@ const FilterFrameScreen = () => {
     const filterStyle = { ...imageStyle };
     const { transform } = currentFilter;
 
-    // 편집 도구 값들 적용
-    const brightness = 1 + (editingValues.brightness || 0) / 100;
-    const contrast = 1 + (editingValues.contrast || 0) / 100;
-    const saturation = 1 + (editingValues.saturation || 0) / 100;
-    
-    // 필터의 기본 변환값과 편집값 결합
-    filterStyle.brightness = (transform.brightness || 1) * brightness;
-    filterStyle.contrast = (transform.contrast || 1) * contrast;
-    filterStyle.saturation = (transform.saturation || 1) * saturation;
+    // Apply filter's base transform values
+    filterStyle.brightness = transform.brightness || 1;
+    filterStyle.contrast = transform.contrast || 1;
+    filterStyle.saturation = transform.saturation || 1;
 
     return filterStyle;
   };
@@ -159,7 +176,7 @@ const FilterFrameScreen = () => {
               source={{ uri: selectedPhotos[index] }}
               style={[styles.previewImage, applyImageFilters({})]}
             />
-            {/* 필터 오버레이 */}
+            {/* Filter overlay */}
             {currentFilter?.transform.overlay && (
               <View
                 style={[
@@ -171,7 +188,7 @@ const FilterFrameScreen = () => {
                 ]}
               />
             )}
-            {/* Before/After 모드 */}
+            {/* Before/After mode (shows original image on left half) */}
             {beforeAfterMode && (
               <View style={[StyleSheet.absoluteFillObject, styles.beforeAfterSplit]}>
                 <View style={styles.beforeHalf}>
@@ -190,23 +207,25 @@ const FilterFrameScreen = () => {
     );
   };
 
-  const renderModeTab = (mode: EditMode, label: string, icon: string) => (
+  // Helper to render mode tabs (Filter, Frame)
+  const renderModeTab = (mode: ActiveSection, label: string, icon: string) => (
     <TouchableOpacity
       style={[
         styles.modeTab,
-        editMode === mode && styles.modeTabSelected,
+        activeSection === mode && styles.modeTabSelected,
       ]}
-      onPress={() => setEditMode(mode)}
+      // Toggle the active section: if already active, set to null (close); otherwise, set to new mode
+      onPress={() => setActiveSection(activeSection === mode ? null : mode)}
     >
       <MaterialCommunityIcons
         name={icon as any}
         size={20}
-        color={editMode === mode ? '#FFFFFF' : '#6C757D'}
+        color={activeSection === mode ? '#FFFFFF' : '#6C757D'}
       />
       <CustomText
         style={[
           styles.modeTabText,
-          editMode === mode && styles.modeTabTextSelected,
+          activeSection === mode && styles.modeTabTextSelected,
         ]}
       >
         {label}
@@ -230,7 +249,7 @@ const FilterFrameScreen = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.previewSection}>
-          {/* Before/After 토글 버튼 */}
+          {/* Before/After Toggle Button */}
           <View style={styles.previewControls}>
             <TouchableOpacity
               style={[
@@ -255,7 +274,7 @@ const FilterFrameScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* 메인 프리뷰 */}
+          {/* Main Preview Area */}
           <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
             <View style={styles.previewContainer}>
               {currentFrame?.type === 'gradient' && currentFrame.style.gradient ? (
@@ -282,8 +301,7 @@ const FilterFrameScreen = () => {
                   {slots.map((_, index) => renderPhotoSlot(index))}
                 </View>
               )}
-              
-              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}> 
                 <CustomText
                   style={[
                     styles.cutprintText,
@@ -294,55 +312,70 @@ const FilterFrameScreen = () => {
                     },
                   ]}
                 >
-                  cutprint
+                  {labelText}
                 </CustomText>
               </View>
             </View>
           </ViewShot>
+          {/* User Input for Label */}
+          <View style={{ alignItems: 'center', marginVertical: 10 }}>
+            <TextInput
+              value={labelText}
+              onChangeText={setLabelText}
+              style={{
+                borderWidth: 1,
+                borderColor: '#E9ECEF',
+                borderRadius: 8,
+                padding: 8,
+                width: 120,
+                textAlign: 'center',
+                fontSize: 14,
+                backgroundColor: '#fff',
+              }}
+              maxLength={12}
+              placeholder="라벨 입력"
+              placeholderTextColor="#B0B0B0"
+            />
+          </View>
         </View>
       </ScrollView>
 
-      {/* 편집 모드 탭 */}
-      <View style={styles.modeTabContainer}>
-        {renderModeTab('filters', '필터', 'camera-enhance')}
-        {renderModeTab('frames', '프레임', 'image-frame')}
-        {renderModeTab('editing', '편집', 'tune')}
+      {/* Editing Mode Tabs and Sliding Section */}
+      <View>
+        <View style={styles.modeTabContainer}>
+          {renderModeTab('filters', '필터', 'camera-enhance')}
+          {renderModeTab('frames', '프레임', 'image-frame')}
+        </View>
+
+        {/* Animated Editing Section */}
+        <Animated.View style={[styles.editingSection, { height: animatedPanelHeight }]}>
+          {/* Render content based on activeSection, ensuring it's only rendered when visible */}
+          {activeSection === 'filters' && (
+            <FilterSelector
+              selectedFilterId={selectedFilter}
+              onFilterSelect={setSelectedFilter}
+            />
+          )}
+          
+          {activeSection === 'frames' && (
+            <FrameSelector
+              selectedFrameId={selectedFrame}
+              onFrameSelect={setSelectedFrame}
+            />
+          )}
+        </Animated.View>
       </View>
 
-      {/* 편집 도구 영역 */}
-      <View style={styles.editingSection}>
-        {editMode === 'filters' && (
-          <FilterSelector
-            selectedFilterId={selectedFilter}
-            onFilterSelect={setSelectedFilter}
-          />
-        )}
-        
-        {editMode === 'frames' && (
-          <FrameSelector
-            selectedFrameId={selectedFrame}
-            onFrameSelect={setSelectedFrame}
-          />
-        )}
-        
-        {editMode === 'editing' && (
-          <PhotoEditingTools
-            onToolChange={handleEditingToolChange}
-            currentValues={editingValues}
-            visible={editingToolsVisible}
-            onToggle={() => setEditingToolsVisible(!editingToolsVisible)}
-          />
-        )}
-      </View>
-
+      {/* Bottom Action Buttons */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
           style={styles.resetButton}
           onPress={() => {
             setSelectedFilter('original');
             setSelectedFrame('no_frame');
-            setEditingValues({});
+            // setEditingValues({}); // Removed as PhotoEditingTools is removed
             setBeforeAfterMode(false);
+            setActiveSection(null); // Close the editing panel on reset
           }}
         >
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
@@ -371,7 +404,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   scrollView: {
-    flex: 1,
+    flex: 1, // Allows the scroll view to take available space
   },
   header: {
     paddingVertical: 20,
@@ -387,8 +420,8 @@ const styles = StyleSheet.create({
   previewSection: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    minHeight: 400,
+    padding: 10,
+    minHeight: 300, // Ensure enough space for preview
   },
   previewContainer: {
     alignItems: 'center',
@@ -396,8 +429,9 @@ const styles = StyleSheet.create({
   previewControls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 15,
+    // marginBottom: 15,
     paddingHorizontal: 10,
+    width: '100%', // Ensure controls span full width
   },
   beforeAfterButton: {
     flexDirection: 'row',
@@ -520,6 +554,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
+    // paddingTop: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
@@ -552,12 +587,12 @@ const styles = StyleSheet.create({
   },
   editingSection: {
     backgroundColor: '#FFFFFF',
-    maxHeight: 300,
+    overflow: 'hidden', // Crucial for height animation to clip content
   },
   bottomActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
