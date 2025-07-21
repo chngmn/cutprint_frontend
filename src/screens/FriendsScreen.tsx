@@ -53,10 +53,10 @@ const FriendsScreen = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  type RootStackParamList = {
-    Album: { userId: number; userName: string };
-    // ...다른 스크린
-  };
+  // type RootStackParamList = {
+  //   Album: { userId: number; userName: string };
+  //   // ...다른 스크린
+  // };
 
   // 데이터 로드 함수들
   const loadFriends = async (): Promise<void> => {
@@ -309,7 +309,7 @@ const FriendsScreen = () => {
     </TouchableOpacity>
   );
 
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={styles.container}>
