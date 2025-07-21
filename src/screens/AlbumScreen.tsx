@@ -1,14 +1,14 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { 
-  ScrollView, 
-  Image, 
-  StyleSheet, 
-  Dimensions, 
-  View, 
-  Modal, 
-  Pressable, 
-  TouchableOpacity, 
-  Alert, 
+import {
+  ScrollView,
+  Image,
+  StyleSheet,
+  Dimensions,
+  View,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+  Alert,
   Text,
   SafeAreaView,
   StatusBar,
@@ -47,9 +47,9 @@ export default function AlbumScreen() {
     try {
       let photos;
       if (userId) {
-        photos = await apiService.getFriendPhotos(userId);
+        photos = await apiService.getUserPhotos(userId);
         // console.log(userId);
-      } else {  
+      } else {
         photos = await apiService.getMyPhotos();
         // console.log(photos);
       }
@@ -139,10 +139,10 @@ export default function AlbumScreen() {
     try {
       setLoading('sharing');
       const fileUri = FileSystem.documentDirectory + `photo_${photo.id}.jpg`;
-      
+
       // 이미지를 임시 파일로 다운로드
       const downloadResult = await FileSystem.downloadAsync(photo.url, fileUri);
-      
+
       if (downloadResult.status === 200) {
         await Sharing.shareAsync(downloadResult.uri);
       } else {
@@ -161,7 +161,7 @@ export default function AlbumScreen() {
   const handlePrintPhoto = async (photo: Photo) => {
     try {
       setLoading('printing');
-      
+
       await Print.printAsync({
         uri: photo.url,
       });
@@ -182,7 +182,7 @@ export default function AlbumScreen() {
   const handleSaveToGallery = async (photo: Photo) => {
     try {
       setLoading('saving');
-      
+
       // 미디어 라이브러리 권한 확인
       const permission = await MediaLibrary.requestPermissionsAsync();
       if (!permission.granted) {
@@ -193,7 +193,7 @@ export default function AlbumScreen() {
       // 이미지를 임시 파일로 다운로드
       const fileUri = FileSystem.documentDirectory + `photo_${photo.id}.jpg`;
       const downloadResult = await FileSystem.downloadAsync(photo.url, fileUri);
-      
+
       if (downloadResult.status === 200) {
         // 갤러리에 저장
         const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
@@ -264,7 +264,7 @@ export default function AlbumScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <AlbumHeader />
-      
+
       {appPhotos.length === 0 ? (
         <EmptyState />
       ) : (
@@ -294,8 +294,8 @@ export default function AlbumScreen() {
           transparent={true}
           onRequestClose={() => setSelectedPhoto(null)}
         >
-          <Pressable 
-            style={styles.modalBackground} 
+          <Pressable
+            style={styles.modalBackground}
             onPress={() => {
               if (!showActionMenu) {
                 setSelectedPhoto(null);
@@ -336,7 +336,7 @@ export default function AlbumScreen() {
           }}>
             <View style={styles.actionMenu}>
               <Text style={styles.actionMenuTitle}>사진 옵션</Text>
-              
+
               <TouchableOpacity
                 style={[styles.actionMenuItem, loading === 'sharing' && styles.actionMenuItemDisabled]}
                 onPress={() => handleSharePhoto(selectedPhotoForAction)}
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  
+
   // Header Styles
   header: {
     zIndex: 10,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  
+
   // Photo Grid Styles
   photoGrid: {
     padding: Spacing.md,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  
+
   // Empty State Styles
   emptyState: {
     flex: 1,
