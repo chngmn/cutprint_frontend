@@ -34,7 +34,7 @@ const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
 
 export default function AlbumScreen() {
   const route = useRoute();
-  const { newImageUri, frameType, refresh } = (route.params || {}) as { newImageUri?: string; frameType?: FrameType, refresh?: boolean };
+  const { userId, userName, newImageUri, frameType, refresh } = (route.params || {}) as { userId?: number; userName?: string; newImageUri?: string; frameType?: FrameType, refresh?: boolean };
 
   const [appPhotos, setAppPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -45,7 +45,14 @@ export default function AlbumScreen() {
 
   const fetchPhotos = async () => {
     try {
-      const photos = await apiService.getMyPhotos();
+      let photos;
+      if (userId) {
+        photos = await apiService.getFriendPhotos(userId);
+        // console.log(userId);
+      } else {  
+        photos = await apiService.getMyPhotos();
+        // console.log(photos);
+      }
       setAppPhotos(photos.map(p => ({ ...p, frameType: '2x2' }))); // Assuming a default frameType for now
     } catch (error) {
       console.error('Error fetching photos:', error);

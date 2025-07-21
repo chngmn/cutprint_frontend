@@ -50,7 +50,7 @@ export const frames: FrameStyle[] = [
     description: '깔끔한 무테',
     type: 'solid',
     style: {
-      borderWidth: 0,
+      borderWidth: 1,
     },
   },
   {
@@ -60,7 +60,7 @@ export const frames: FrameStyle[] = [
     description: '심플한 검정 테두리',
     type: 'solid',
     style: {
-      borderWidth: 1,
+      borderWidth: 3,
       borderColor: '#000000',
     },
   },
@@ -71,7 +71,7 @@ export const frames: FrameStyle[] = [
     description: '깔끔한 흰색 테두리',
     type: 'solid',
     style: {
-      borderWidth: 1,
+      borderWidth: 3,
       borderColor: '#FFFFFF',
     },
   },
@@ -82,7 +82,7 @@ export const frames: FrameStyle[] = [
     description: '중성적인 회색 테두리',
     type: 'solid',
     style: {
-      borderWidth: 1,
+      borderWidth: 3,
       borderColor: '#808080',
     },
   },
@@ -93,7 +93,7 @@ export const frames: FrameStyle[] = [
     description: '적당한 두께의 검정 프레임',
     type: 'solid',
     style: {
-      borderWidth: 3,
+      borderWidth: 5,
       borderColor: '#000000',
     },
   },

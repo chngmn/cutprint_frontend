@@ -293,7 +293,7 @@ const FilterFrameScreen = () => {
               ) : (
                 <View
                   style={[
-                    styles.framePreviewContainer,
+                    // styles.framePreviewContainer,
                     getFrameStyle(),
                     currentFrame ? applyFrameStyle(currentFrame) : {},
                   ]}
@@ -502,6 +502,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderTopWidth: 1,
     borderColor: '#000000',
+    // borderColor: '#FFFFFF',
   },
   previewSlotGrid4: {
     width: '50%',
@@ -511,6 +512,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderTopWidth: 1,
     borderColor: '#000000',
+    // borderColor: '#FFFFFF',
   },
   previewSlotGrid6: {
     width: '50%',
@@ -520,6 +522,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderTopWidth: 1,
     borderColor: '#000000',
+    // borderColor: '#FFFFFF',
   },
   previewImage: {
     width: '100%',
