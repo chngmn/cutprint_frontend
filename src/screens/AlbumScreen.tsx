@@ -161,18 +161,9 @@ export default function AlbumScreen() {
   const handlePrintPhoto = async (photo: Photo) => {
     try {
       setLoading('printing');
-      const html = `
-        <html>
-          <body style="margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh;">
-            <img src="${photo.url}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
-          </body>
-        </html>
-      `;
       
       await Print.printAsync({
-        html,
-        width: 612, // A4 width in points
-        height: 792, // A4 height in points
+        uri: photo.url,
       });
     } catch (e: any) {
       if (e.message === 'Printing did not complete') {

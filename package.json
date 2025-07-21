@@ -21,6 +21,7 @@
     "expo": "^53.0.20",
     "expo-auth-session": "~6.2.1",
     "expo-camera": "~16.1.10",
+    "expo-image-manipulator": "^13.1.7",
     "expo-linear-gradient": "~14.1.5",
     "expo-media-library": "^17.1.7",
     "expo-print": "^14.1.4",
