@@ -12,8 +12,9 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import CustomText from '../components/CustomText';
+import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
@@ -28,12 +29,9 @@ type PreviewAndSaveScreenRouteProp = RouteProp<
 
 type PreviewAndSaveScreenNavigationProp = StackNavigationProp<any>;
 
-type Props = {
-  route: PreviewAndSaveScreenRouteProp;
-  navigation: PreviewAndSaveScreenNavigationProp;
-};
-
-const PreviewAndSaveScreen: React.FC<Props> = ({ route, navigation }) => {
+const PreviewAndSaveScreen = () => {
+  const route = useRoute<PreviewAndSaveScreenRouteProp>();
+  const navigation = useNavigation<PreviewAndSaveScreenNavigationProp>();
   const { imageUri, cutType } = route.params;
 
   const saveToAlbum = async () => {

@@ -3,9 +3,8 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  PanGestureHandler,
-  State,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import CustomText from './CustomText';
@@ -231,8 +230,6 @@ const PhotoEditingTools: React.FC<PhotoEditingToolsProps> = ({
             onValueChange={(value) => handleValueChange(selectedTool, Math.round(value))}
             minimumTrackTintColor="#4867B7"
             maximumTrackTintColor="#E9ECEF"
-            thumbStyle={styles.sliderThumb}
-            trackStyle={styles.sliderTrack}
           />
           <CustomText style={styles.sliderMax}>{tool.max}</CustomText>
         </View>
