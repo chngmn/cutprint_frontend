@@ -114,6 +114,13 @@ class ApiService {
   async getMyPhotos(): Promise<any[]> {
     return this.makeRequest('/photos/my-photos');
   }
+
+  // 사진 삭제
+  async deletePhoto(photoId: number): Promise<any> {
+    return this.makeRequest(`/photos/${photoId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiService = new ApiService();
