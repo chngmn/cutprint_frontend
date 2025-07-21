@@ -331,6 +331,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="이메일"
+              placeholderTextColor={Colors.textSecondary}
               value={signupEmail}
               onChangeText={setSignupEmail}
               keyboardType="email-address"
@@ -339,6 +340,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="닉네임"
+              placeholderTextColor={Colors.textSecondary}
               value={signupNickname}
               onChangeText={setSignupNickname}
               autoCapitalize="none"
@@ -346,6 +348,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호"
+              placeholderTextColor={Colors.textSecondary}
               value={signupPassword}
               onChangeText={setSignupPassword}
               secureTextEntry
@@ -353,6 +356,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호 확인"
+              placeholderTextColor={Colors.textSecondary}
               value={signupPasswordConfirm}
               onChangeText={setSignupPasswordConfirm}
               secureTextEntry
@@ -392,6 +396,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="이메일"
+              placeholderTextColor={Colors.textSecondary}
               value={loginEmail}
               onChangeText={setLoginEmail}
               keyboardType="email-address"
@@ -400,6 +405,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="비밀번호"
+              placeholderTextColor={Colors.textSecondary}
               value={loginPassword}
               onChangeText={setLoginPassword}
               secureTextEntry
@@ -433,6 +439,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.nicknameInput}
               placeholder="닉네임 입력"
+              placeholderTextColor={Colors.textSecondary}
               value={nickname}
               onChangeText={setNickname}
               maxLength={50}
