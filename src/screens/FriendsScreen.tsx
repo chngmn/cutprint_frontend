@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Image // 프로필 이미지 추가를 위해 import
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { apiService } from '../services/apiService';
 
 // --- 인터페이스 정의 ---
 interface Friend {
@@ -38,48 +39,56 @@ interface SearchResultUser {
 
 const FriendsScreen = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [friends, setFriends] = useState<Friend[]>([
-    // 구글 profile image가 있는 경우 profileImage에 불러올 것
-    // { id: '1', name: '김민준', profileImage: 'https://via.placeholder.com/40/FF5733/FFFFFF?text=KMJ', status: '온라인' },
-
-    // 일반 로그인인 경우 기본 프로필 화면이 보이게 할 것
-    { id: '1', name: '김민준', profileImage: null, status: '온라인' },
-    { id: '2', name: '이서연', profileImage: null, status: '오프라인' },
-    { id: '3', name: '박지훈', profileImage: null, status: '온라인' },
-    { id: '6', name: 'Martha Craig', profileImage: null, status: '온라인' }, // 스크린샷 예시
-    { id: '7', name: 'Martha Craig 2', profileImage: null, status: '오프라인' },
-    { id: '8', name: 'Martha Craig 3', profileImage: null, status: '온라인' },
-    { id: '9', name: 'Martha Craig 4', profileImage: null, status: '온라인' },
-    { id: '10', name: 'Martha Craig 5', profileImage: null, status: '온라인' },
-  ]);
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([
-    { id: '4', name: '최유진', profileImage: null, status: 'pending' },
-    { id: '5', name: 'Martha Craig', profileImage: null, status: 'pending' }, // 스크린샷 예시
-  ]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResultUser[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // 검색어를 입력할 때마다 검색 결과를 업데이트 (프론트엔드 필터링)
-  const handleSearchInputChange = (text: string): void => {
+  // 데이터 로드 함수들
+  const loadFriends = async (): Promise<void> => {
+    try {
+      const friendsData = await apiService.getFriends();
+      setFriends(friendsData);
+    } catch (error) {
+      console.error('친구 목록 로드 실패:', error);
+      Alert.alert('오류', '친구 목록을 불러올 수 없습니다.');
+    }
+  };
+
+  const loadFriendRequests = async (): Promise<void> => {
+    try {
+      const requestsData = await apiService.getReceivedFriendRequests();
+      setFriendRequests(requestsData);
+    } catch (error) {
+      console.error('친구 요청 목록 로드 실패:', error);
+      Alert.alert('오류', '친구 요청 목록을 불러올 수 없습니다.');
+    }
+  };
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    loadFriends();
+    loadFriendRequests();
+  }, []);
+
+  // 검색어를 입력할 때마다 검색 결과를 업데이트
+  const handleSearchInputChange = async (text: string): Promise<void> => {
     setSearchQuery(text);
     if (text.trim() === '') {
-      setSearchResults([]); // 검색어가 없으면 결과 초기화
+      setSearchResults([]);
       return;
     }
 
-    // ⭐️ 실제 앱에서는 이곳에서 API 호출을 통해 서버에서 사용자 검색을 수행합니다.
-    // 여기서는 가상의 검색 결과를 반환합니다. (친구 목록에 없는 사용자 위주로)
-    const mockAllUsers: SearchResultUser[] = [
-      { id: 'u100', name: '이강인', profileImage: null, isFriend: false, hasSentRequest: false, hasReceivedRequest: false },
-      { id: 'u101', name: '손흥민', profileImage: null, isFriend: true, hasSentRequest: false, hasReceivedRequest: false }, // 이미 친구
-      { id: 'u102', name: '김연아', profileImage: null, isFriend: false, hasSentRequest: true, hasReceivedRequest: false }, // 내가 요청 보냄
-      { id: 'u103', name: '류현진', profileImage: null, isFriend: false, hasSentRequest: false, hasReceivedRequest: true }, // 상대방이 요청 보냄
-      { id: 'u104', name: '마동석', profileImage: null, isFriend: false, hasSentRequest: false, hasReceivedRequest: false },
-    ];
-
-    const filteredResults = mockAllUsers.filter(user =>
-      user.name.includes(text) || user.id.includes(text.toLowerCase())
-    );
-    setSearchResults(filteredResults);
+    try {
+      setLoading(true);
+      const searchData = await apiService.searchUsers(text);
+      setSearchResults(searchData);
+    } catch (error) {
+      console.error('사용자 검색 실패:', error);
+      Alert.alert('오류', '사용자 검색에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sendFriendRequest = (targetUser: SearchResultUser): void => {
@@ -90,15 +99,19 @@ const FriendsScreen = () => {
         { text: '취소', style: 'cancel' },
         {
           text: '보내기',
-          onPress: () => {
-            console.log(`${targetUser.name}(${targetUser.id})에게 친구 요청 보냄`);
-            // ⭐️ 실제 API 호출: 요청 성공 시 아래 UI 업데이트
-            setSearchResults(prevResults =>
-              prevResults.map(user =>
-                user.id === targetUser.id ? { ...user, hasSentRequest: true } : user
-              )
-            );
-            Alert.alert('완료', `${targetUser.name} 님에게 친구 요청을 보냈습니다.`);
+          onPress: async () => {
+            try {
+              await apiService.sendFriendRequest(parseInt(targetUser.id));
+              setSearchResults(prevResults =>
+                prevResults.map(user =>
+                  user.id === targetUser.id ? { ...user, hasSentRequest: true } : user
+                )
+              );
+              Alert.alert('완료', `${targetUser.name} 님에게 친구 요청을 보냈습니다.`);
+            } catch (error) {
+              console.error('친구 요청 보내기 실패:', error);
+              Alert.alert('오류', '친구 요청을 보낼 수 없습니다.');
+            }
           },
         },
       ]
@@ -113,15 +126,25 @@ const FriendsScreen = () => {
         { text: '아니오', style: 'cancel' },
         {
           text: '예',
-          onPress: () => {
-            console.log(`${targetUser.name}(${targetUser.id})에게 보낸 친구 요청 취소`);
-            // ⭐️ 실제 API 호출: 요청 취소 성공 시 아래 UI 업데이트
-            setSearchResults(prevResults =>
-              prevResults.map(user =>
-                user.id === targetUser.id ? { ...user, hasSentRequest: false } : user
-              )
-            );
-            Alert.alert('완료', '친구 요청을 취소했습니다.');
+          onPress: async () => {
+            try {
+              // 보낸 요청 목록에서 해당 사용자 찾기
+              const sentRequests = await apiService.getSentFriendRequests();
+              const requestToCancel = sentRequests.find(req => req.id === targetUser.id);
+              
+              if (requestToCancel) {
+                await apiService.cancelFriendRequest(requestToCancel.id);
+                setSearchResults(prevResults =>
+                  prevResults.map(user =>
+                    user.id === targetUser.id ? { ...user, hasSentRequest: false } : user
+                  )
+                );
+                Alert.alert('완료', '친구 요청을 취소했습니다.');
+              }
+            } catch (error) {
+              console.error('친구 요청 취소 실패:', error);
+              Alert.alert('오류', '친구 요청을 취소할 수 없습니다.');
+            }
           },
         },
       ]
@@ -136,19 +159,21 @@ const FriendsScreen = () => {
         { text: '취소', style: 'cancel' },
         {
           text: '수락',
-          onPress: () => {
-            // ⭐️ 실제 API 호출: 요청 수락 성공 시 아래 UI 업데이트
-            const acceptedRequest = friendRequests.find((req) => req.id === requestId);
-            if (acceptedRequest) {
-              setFriends([...friends, { id: acceptedRequest.id, name: acceptedRequest.name, profileImage: acceptedRequest.profileImage, status: '온라인' }]);
-              setFriendRequests(friendRequests.map(req =>
-                req.id === requestId ? { ...req, status: 'accepted' } : req
-              ));
-              // 일정 시간 후 목록에서 제거하거나 애니메이션 처리 가능
-              setTimeout(() => {
-                setFriendRequests(friendRequests.filter((req) => req.id !== requestId));
-              }, 500); // 0.5초 후 목록에서 완전히 제거
-              Alert.alert('완료', `${acceptedRequest.name} 님과 친구가 되었습니다!`);
+          onPress: async () => {
+            try {
+              await apiService.acceptFriendRequest(requestId);
+              
+              // 친구 목록과 요청 목록 새로고침
+              await loadFriends();
+              await loadFriendRequests();
+              
+              const acceptedRequest = friendRequests.find((req) => req.id === requestId);
+              if (acceptedRequest) {
+                Alert.alert('완료', `${acceptedRequest.name} 님과 친구가 되었습니다!`);
+              }
+            } catch (error) {
+              console.error('친구 요청 수락 실패:', error);
+              Alert.alert('오류', '친구 요청을 수락할 수 없습니다.');
             }
           },
         },
@@ -164,15 +189,15 @@ const FriendsScreen = () => {
         { text: '취소', style: 'cancel' },
         {
           text: '거절',
-          onPress: () => {
-            // ⭐️ 실제 API 호출: 요청 거절 성공 시 아래 UI 업데이트
-            setFriendRequests(friendRequests.map(req =>
-              req.id === requestId ? { ...req, status: 'declined' } : req
-            ));
-            setTimeout(() => {
-              setFriendRequests(friendRequests.filter((req) => req.id !== requestId));
-            }, 500); // 0.5초 후 목록에서 완전히 제거
-            Alert.alert('완료', '친구 요청을 거절했습니다.');
+          onPress: async () => {
+            try {
+              await apiService.declineFriendRequest(requestId);
+              await loadFriendRequests();
+              Alert.alert('완료', '친구 요청을 거절했습니다.');
+            } catch (error) {
+              console.error('친구 요청 거절 실패:', error);
+              Alert.alert('오류', '친구 요청을 거절할 수 없습니다.');
+            }
           },
         },
       ]
