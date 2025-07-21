@@ -1,27 +1,36 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ScrollView, Image, StyleSheet, Dimensions, View, Modal, Pressable, TouchableOpacity, Alert, Text } from 'react-native';
+import { 
+  ScrollView, 
+  Image, 
+  StyleSheet, 
+  Dimensions, 
+  View, 
+  Modal, 
+  Pressable, 
+  TouchableOpacity, 
+  Alert, 
+  Text,
+  SafeAreaView,
+  StatusBar,
+  RefreshControl,
+  FlatList
+} from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../services/apiService';
+import Theme from '../constants/theme';
 
 type FrameType = '1x4' | '2x2' | '3x2' | 'Vertical 4-cut' | '4-cut grid' | '6-cut grid';
 interface Photo { id: string; url: string; frameType: FrameType; }
 
-const { width } = Dimensions.get('window');
-const GAP = 4;
+const { width, height } = Dimensions.get('window');
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
 
-// 배열을 n개씩 묶는 헬퍼
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    result.push(arr.slice(i, i + size));
-  }
-  return result;
-}
 
 export default function AlbumScreen() {
   const route = useRoute();
@@ -32,6 +41,7 @@ export default function AlbumScreen() {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [selectedPhotoForAction, setSelectedPhotoForAction] = useState<Photo | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPhotos = async () => {
     try {
@@ -55,6 +65,38 @@ export default function AlbumScreen() {
     }
   }, [refresh]);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchPhotos();
+    setRefreshing(false);
+  };
+
+  // Header Component
+  const AlbumHeader = () => (
+    <View style={styles.header}>
+      <LinearGradient
+        colors={Colors.gradient.primary as any}
+        style={styles.headerGradient}
+      >
+        <SafeAreaView>
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>My Photos</Text>
+              <Text style={styles.headerSubtitle}>{appPhotos.length} photos</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.headerButton}>
+                <Ionicons name="search" size={24} color={Colors.white} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerButton}>
+                <Ionicons name="options" size={24} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
+  );
 
   const handleDeletePhoto = async (photo: Photo) => {
     Alert.alert(
@@ -177,80 +219,75 @@ export default function AlbumScreen() {
     setShowActionMenu(true);
   };
 
-  // 전체 사용 가능한 화면 너비 (마진 제외)
-  const availableWidth = width - GAP * 2;
+  // Modern Grid Configuration
+  const numColumns = 2;
+  const gridSpacing = Spacing.sm;
+  const itemSize = (width - (numColumns + 1) * gridSpacing) / numColumns;
 
+  // Photo Item Component
+  const PhotoItem = ({ item, index }: { item: Photo, index: number }) => (
+    <TouchableOpacity
+      style={[styles.photoItem, { width: itemSize, height: itemSize }]}
+      activeOpacity={0.9}
+      onPress={() => setSelectedPhoto(item)}
+    >
+      <View style={styles.photoContainer}>
+        <Image
+          source={{ uri: item.url }}
+          style={styles.photoImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['transparent', Colors.overlayLight] as any}
+          style={styles.photoOverlay}
+        />
+        <View style={styles.photoInfo}>
+          <Text style={styles.photoDate}>Today</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-
-  // 사진들을 2개씩 묶어서 각 행(Row) 구성
-  const rows = useMemo(() => chunkArray(appPhotos, 2), [appPhotos]);
+  // Empty State Component
+  const EmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="camera-outline" size={64} color={Colors.gray400} />
+      <Text style={styles.emptyTitle}>No Photos Yet</Text>
+      <Text style={styles.emptySubtitle}>
+        Take your first photo to see it here
+      </Text>
+    </View>
+  );
 
 
 
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {rows.map((rowPhotos: Photo[], rowIndex) => (
-          <View key={rowIndex} style={styles.row}>
-            {rowPhotos.map(photo => {
-              const getRatio = (p: Photo) => {
-                switch (p.frameType) {
-                  case '1x4':
-                  case 'Vertical 4-cut':
-                    return 70 / 270; // width / height
-                  case '2x2':
-                  case '3x2':
-                  case '4-cut grid':
-                  case '6-cut grid':
-                    return 140 / 240; // width / height
-                  default:
-                    return 1;
-                }
-              };
-
-              let photoWidth = 0;
-              let calculatedHeight = 0;
-              const photoRatio = getRatio(photo);
-
-              if (rowPhotos.length === 1) {
-                // 한 행에 사진이 하나일 경우, 좌우 여백(GAP/2 * 2 = GAP)을 제외한 나머지 공간을 모두 차지합니다.
-                photoWidth = availableWidth - GAP;
-                calculatedHeight = photoWidth / photoRatio;
-
-              } else if (rowPhotos.length === 2) {
-                const ratio1 = getRatio(rowPhotos[0]);
-                const ratio2 = getRatio(rowPhotos[1]);
-
-                // 두 사진의 너비 합 + 사진 사이의 여백(GAP)이 전체 가용 너비를 채우도록 계산합니다.
-                // (w1 + w2) + GAP = availableWidth
-                const totalImageWidth = availableWidth - GAP;
-                
-                // h = total_width / (r1 + r2) 공식을 사용하여 모든 사진의 높이를 동일하게 맞춥니다.
-                calculatedHeight = totalImageWidth / (ratio1 + ratio2);
-                
-                // 계산된 높이와 각 사진의 비율을 곱해 최종 너비를 구합니다.
-                photoWidth = photoRatio * calculatedHeight;
-              }
-
-              return (
-                <TouchableOpacity
-                  key={photo.id}
-                  style={{ width: photoWidth, height: calculatedHeight, marginHorizontal: GAP / 2 }}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedPhoto(photo)}
-                >
-                  <Image
-                    source={{ uri: photo.url }}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ))}
-      </ScrollView>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <AlbumHeader />
+      
+      {appPhotos.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <FlatList
+          data={appPhotos}
+          renderItem={PhotoItem}
+          keyExtractor={(item) => item.id}
+          numColumns={numColumns}
+          contentContainerStyle={styles.photoGrid}
+          columnWrapperStyle={styles.photoRow}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+            />
+          }
+        />
+      )}
 
       {/* 전체화면 모달 */}
       {selectedPhoto && !showActionMenu && (
@@ -356,132 +393,201 @@ export default function AlbumScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Main Container
   container: {
-    padding: GAP,
-    backgroundColor: '#f5f5f5',
-
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: GAP,
-    justifyContent: 'flex-start',
-
-  },
-  image: {
     flex: 1,
-    borderRadius: 2,
-    backgroundColor: '#ddd',
+    backgroundColor: Colors.background,
   },
+  
+  // Header Styles
+  header: {
+    zIndex: 10,
+  },
+  headerGradient: {
+    paddingBottom: Spacing.md,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingTop: Spacing.sm,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.white,
+    fontFamily: Typography.fontFamily.bold,
+  },
+  headerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.white,
+    opacity: 0.8,
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    padding: Spacing.sm,
+    marginLeft: Spacing.xs,
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  
+  // Photo Grid Styles
+  photoGrid: {
+    padding: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  photoRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xs,
+  },
+  photoItem: {
+    marginBottom: Spacing.md,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    ...Shadow.medium,
+  },
+  photoContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.gray200,
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  photoInfo: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    left: Spacing.sm,
+    right: Spacing.sm,
+  },
+  photoDate: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.medium,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  
+  // Empty State Styles
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  emptySubtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.lineHeight.relaxed * Typography.fontSize.base,
+  },
+  // Fullscreen Modal Styles
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: Colors.overlayDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fullImage: {
-    width: width * 0.9,
-    height: width * 0.9,
-    borderRadius: 8,
+    width: width * 0.95,
+    height: width * 0.95,
+    borderRadius: Radius.lg,
   },
-  // saveButton: {
-  //   marginTop: 24,
-  //   paddingVertical: 14,
-  //   paddingHorizontal: 32,
-  //   backgroundColor: '#599EF1',
-  //   borderRadius: 24,
-  //   // iOS 그림자
-  //   shadowColor: '#000',
-  //   shadowOffset: { width: 0, height: 3 },
-  //   shadowOpacity: 0.3,
-  //   shadowRadius: 4,
-  //   // Android 그림자
-  //   elevation: 6,
-  // },
-  // saveText: {
-  //   color: '#fff',
-  //   fontSize: 18,
-  //   fontWeight: '600',
-  //   letterSpacing: 0.5,
-  // },
+  // FAB Button
   fab: {
     position: 'absolute',
-    bottom: 40,
-    right: 24,
+    bottom: Spacing.xl,
+    right: Spacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: Colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-    // 터치 영역 확장
-    padding: 8,
+    ...Shadow.fab,
   },
   // Action Menu Styles
   actionModalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
   },
   actionMenu: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
     minWidth: 280,
     maxWidth: width * 0.85,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-    zIndex: 1001,
+    ...Shadow.large,
   },
   actionMenuTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 16,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
     textAlign: 'center',
   },
   actionMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.xs,
+    backgroundColor: Colors.surfaceVariant,
   },
   actionMenuItemDisabled: {
     opacity: 0.5,
   },
   actionMenuText: {
-    fontSize: 16,
-    marginLeft: 16,
-    color: '#34495E',
-    fontWeight: '500',
+    fontSize: Typography.fontSize.base,
+    marginLeft: Spacing.md,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
   deleteMenuItem: {
-    backgroundColor: '#fdf2f2',
+    backgroundColor: '#FFF5F5',
+    borderColor: Colors.error,
+    borderWidth: 1,
   },
   deleteMenuText: {
-    color: '#e74c3c',
+    color: Colors.error,
   },
   cancelButton: {
-    marginTop: 8,
-    paddingVertical: 16,
-    borderRadius: 8,
-    backgroundColor: '#ecf0f1',
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.gray100,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#7f8c8d',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 });
