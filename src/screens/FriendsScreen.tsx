@@ -12,12 +12,15 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/apiService';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
 // --- 인터페이스 정의 ---
 interface Friend {
   id: string;
+  userId: number; // 추가
   name: string;
-  profileImage: string  | null; // 프로필 이미지 URL 추가
+  profileImage: string | null; // 프로필 이미지 URL 추가
   status?: string; // 상태는 선택적으로 변경
 }
 
@@ -43,6 +46,12 @@ const FriendsScreen = () => {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResultUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  type RootStackParamList = {
+    Album: { userId: number; userName: string };
+    // ...다른 스크린
+  };
 
   // 데이터 로드 함수들
   const loadFriends = async (): Promise<void> => {
@@ -279,17 +288,19 @@ const FriendsScreen = () => {
 
   // 내 친구 아이템 렌더링
   const renderFriendItem: ListRenderItem<Friend> = ({ item }) => (
-    <View style={styles.listItem}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('Album', { userId: Number(item.id), userName: item.name })}
+      style={styles.listItem}
+    >
       {item.profileImage ? (
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
       ) : 
       <View style={styles.profileImage}>
         <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
       </View>}
-      
       <Text style={styles.listItemName}>{item.name}</Text>
       {item.status && <Text style={styles.statusText}>{item.status}</Text>}
-    </View>
+    </TouchableOpacity>
   );
 
   return (

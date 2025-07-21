@@ -19,7 +19,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };
-  Album: { newImageUri: string; frameType: string };
+  Album: { userId?: number; userName?: string; newImageUri: string; frameType: string };
 };
 
 type PreviewAndSaveScreenRouteProp = RouteProp<
