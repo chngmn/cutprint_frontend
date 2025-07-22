@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,8 @@ const FriendsScreen = () => {
   const [searchResults, setSearchResults] = useState<SearchResultUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const searchInputRef = useRef<TextInput>(null);
+  const [selectedRequestAction, setSelectedRequestAction] = useState<{ id: string; action: 'accept' | 'decline' } | null>(null);
 
   // type RootStackParamList = {
   //   Album: { userId: number; userName: string };
@@ -272,14 +274,40 @@ const FriendsScreen = () => {
         {item.status === 'pending' ? (
           <View style={styles.requestButtons}>
             <TouchableOpacity
-              style={[styles.requestButton, styles.acceptButton]}
-              onPress={() => acceptFriendRequest(item.id)}>
-              <Text style={styles.buttonText}>수락</Text>
+              style={[
+                styles.requestButton,
+                styles.acceptButton,
+                selectedRequestAction?.id === item.id && selectedRequestAction.action === 'accept' && styles.selectedButton
+              ]}
+              onPress={async () => {
+                setSelectedRequestAction({ id: item.id, action: 'accept' });
+                await acceptFriendRequest(item.id);
+                setSelectedRequestAction(null);
+              }}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  selectedRequestAction?.id === item.id && selectedRequestAction.action === 'accept' && styles.selectedButtonText
+                ]}
+              >수락</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.requestButton, styles.declineButton]}
-              onPress={() => declineFriendRequest(item.id)}>
-              <Text style={styles.buttonText}>거절</Text>
+              style={[
+                styles.requestButton,
+                styles.declineButton,
+                selectedRequestAction?.id === item.id && selectedRequestAction.action === 'decline' && styles.selectedButton
+              ]}
+              onPress={async () => {
+                setSelectedRequestAction({ id: item.id, action: 'decline' });
+                await declineFriendRequest(item.id);
+                setSelectedRequestAction(null);
+              }}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  selectedRequestAction?.id === item.id && selectedRequestAction.action === 'decline' && styles.selectedButtonText
+                ]}
+              >거절</Text>
             </TouchableOpacity>
           </View>
         ) : item.status === 'accepted' ? (
@@ -324,6 +352,7 @@ const FriendsScreen = () => {
       <View style={styles.searchContainer}>
         <MaterialCommunityIcons name="magnify" size={20} color="#888" style={styles.searchIcon} />
         <TextInput
+          ref={searchInputRef}
           style={styles.searchInput}
           placeholder="Search" // 스크린샷처럼 영어로 변경
           placeholderTextColor="#888"
@@ -366,16 +395,56 @@ const FriendsScreen = () => {
       {/* 내 친구 목록 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>내 친구</Text>
-        {friends.length > 0 ? (
-          <FlatList<Friend>
-            data={friends}
-            renderItem={renderFriendItem}
-            keyExtractor={(item) => item.id}
-            style={styles.friendList} // 스크롤 가능하도록 스타일 적용
-            nestedScrollEnabled
-          />
+        {friends.length === 0 ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 40 }}>
+            <MaterialCommunityIcons name="account-multiple-outline" size={64} color="#adb5bd" style={{ marginBottom: 16 }} />
+            <Text style={{ color: '#868e96', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+              아직 친구가 없어요
+            </Text>
+            <Text style={{ color: '#adb5bd', fontSize: 15, marginBottom: 18 }}>
+              친구를 추가하고 함께 추억을 만들어보세요!
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'black',
+                borderRadius: 20,
+                paddingVertical: 10,
+                paddingHorizontal: 28,
+                marginTop: 8,
+                shadowColor: 'black',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+              onPress={() => {
+                searchInputRef.current?.focus();
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+                친구 찾기
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          <Text style={styles.emptyText}>친구가 없어요</Text>
+          <View style={{ flex: 1 }}>
+            {/* {friends.length > 0 && friends.length <= 2 && (
+              <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 6 }}>
+                <MaterialCommunityIcons name="account-plus-outline" size={24} color="#74c0fc" style={{ marginBottom: 2 }} />
+                <Text style={{ color: '#74c0fc', fontSize: 13, fontWeight: '500' }}>
+                  친구를 더 추가해보세요!
+                </Text>
+              </View>
+            )} */}
+            <FlatList
+              data={friends}
+              renderItem={renderFriendItem}
+              keyExtractor={(item) => item.id}
+              style={styles.friendList}
+              nestedScrollEnabled
+            />
+          </View>
         )}
       </View>
     </View>
@@ -475,27 +544,40 @@ const styles = StyleSheet.create({
     minWidth: 70, // 최소 너비 설정
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#222',
   },
   acceptButton: {
-    backgroundColor: '#28a745', // 녹색
+    // borderColor: '#28a745', // 필요시 초록 테두리
   },
   declineButton: {
-    backgroundColor: '#dc3545', // 빨간색
+    // borderColor: '#dc3545', // 필요시 빨간 테두리
+  },
+  selectedButton: {
+    backgroundColor: 'black',
+    borderColor: 'black',
+    borderWidth: 1,
   },
   buttonText: {
-    color: '#fff',
+    color: '#222',
     fontWeight: 'bold',
     fontSize: 13,
     fontFamily: 'Pretendard',
   },
+  selectedButtonText: {
+    color: '#fff',
+  },
   actionButtonPrimary: { // 친구 추가 버튼
-    backgroundColor: '#599EF1', // 파란색
+    // backgroundColor: '#599EF1', // 파란색
+    backgroundColor: 'black', // 파란색
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
   },
   actionButtonSent: { // 요청 보냄 버튼
-    backgroundColor: '#6c757d', // 회색
+    // backgroundColor: '#6c757d', // 회색
+    backgroundColor: 'black', // 회색
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
