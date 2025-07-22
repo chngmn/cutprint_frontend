@@ -1,3 +1,44 @@
+> <h4>2025S KAIST 몰입캠프</h4>
+> <h4>Week 2 : 2025. 07. 10. ~ 2025. 07. 16.</h4>
+
+---
+
+## 👥 Team Members
+<table>
+    <tr>
+      <td align="center" width="200">
+        <a href="https://github.com/7lram">
+          <img width="120" height="120" alt="Image" src="https://github.com/user-attachments/assets/bed619eb-5f33-4ea5-942a-3607bd4b294d" />
+          <br />
+        </a>
+      </td>
+      <td align="center" width="200">
+        <a href="https://github.com/chngmn">
+          <img width="120" height="120" alt="Image" src="https://github.com/user-attachments/assets/20771cb6-a9f0-4648-87ac-f9e3268767e1" />
+          <br />
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <b>백서경</b>
+      </td>
+      <td align="center">
+        <b>이창민</b>
+      </td>
+    </tr>
+  <tr>
+    <td align="center">
+      <p>고려대학교 데이터과학과</p>
+    </td>
+    <td align="center">
+      <p>카이스트 전산학부</p>
+    </td>
+  </tr>
+</table>
+
+---
+
 # 📸 Cutprint
 
 - Cutprint는 React Native Expo 프론트엔드와 NestJS 백엔드로 구성된 포토부스 앱입니다.
