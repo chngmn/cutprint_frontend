@@ -17,7 +17,7 @@ import {
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -208,7 +208,7 @@ const PreviewAndSaveScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryAction} onPress={shareToInstagramStory}>
-            <Ionicons name="logo-instagram" size={20} color={Colors.textPrimary} />
+            <MaterialCommunityIcons name="share-outline" size={20} color={Colors.textPrimary} />
             <Text style={styles.secondaryActionText}>공유</Text>
           </TouchableOpacity>
         </View>
