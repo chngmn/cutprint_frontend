@@ -2,14 +2,18 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   Image,
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Pressable,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import CustomText from '../components/CustomText';
+import { Colors, Typography, Spacing, Radius, Shadow, Layout } from '../constants/theme';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -104,7 +108,7 @@ const FramePreview = ({
         ))}
       </View>
       <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
-        <Text style={styles.cutprintText}>cutprint</Text>
+        <CustomText style={styles.cutprintText}>cutprint</CustomText>
       </View>
     </>
   );
@@ -128,6 +132,9 @@ const PhotoSelectionScreen = () => {
       } else {
         if (selectedPhotos.length < requiredCount) {
           setSelectedPhotos([...selectedPhotos, uri]);
+        } else {
+          // Haptic feedback would be nice here
+          Alert.alert('알림', `최대 ${requiredCount}장까지 선택할 수 있습니다.`);
         }
       }
     }
@@ -143,30 +150,51 @@ const PhotoSelectionScreen = () => {
 
   const renderPhoto = ({ item }: { item: string }) => {
     const isSelected = selectedPhotos.includes(item);
+    const selectionIndex = selectedPhotos.indexOf(item) + 1;
+
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={() => handlePhotoPress(item)}
-        style={styles.photoContainer}
+        style={({ pressed }) => [
+          styles.photoContainer,
+          pressed && styles.photoPressed
+        ]}
       >
         <Image source={{ uri: item }} style={styles.photo} />
         {isSelected && (
           <View style={styles.selectionOverlay}>
-            <Text style={styles.selectionText}>
-              {selectedPhotos.indexOf(item) + 1}
-            </Text>
+            <View style={styles.selectionBadge}>
+              <CustomText style={styles.selectionText}>{selectionIndex}</CustomText>
+            </View>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>사진 선택</Text>
-        <Text
-          style={styles.subtitle}
-        >{`프레임에 사용할 사진 ${isOnlineMode ? 1 : requiredCount}장을 선택하세요.`}</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <CustomText style={styles.headerTitle}>사진 선택</CustomText>
+          <CustomText style={styles.headerSubtitle}>
+            {`프레임에 사용할 사진 ${isOnlineMode ? 1 : requiredCount}장을 선택하세요`}
+          </CustomText>
+        </View>
+        <View style={styles.headerAction}>
+          <View style={styles.progressContainer}>
+            <CustomText style={styles.progressText}>
+              {selectedPhotos.length}/{isOnlineMode ? 1 : requiredCount}
+            </CustomText>
+          </View>
+        </View>
       </View>
       <FlatList
         data={photos}
@@ -186,8 +214,14 @@ const PhotoSelectionScreen = () => {
           ]}
           onPress={handleCompletion}
           disabled={selectedPhotos.length !== (isOnlineMode ? 1 : requiredCount)}
+          activeOpacity={0.8}
         >
-          <Text style={styles.completeButtonText}>선택 완료</Text>
+          <CustomText style={[
+            styles.completeButtonText,
+            selectedPhotos.length !== (isOnlineMode ? 1 : requiredCount) && styles.completeButtonTextDisabled
+          ]}>
+            선택 완료
+          </CustomText>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -197,65 +231,125 @@ const PhotoSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.white,
   },
+  // Header Styles (Unified with FilterFrameScreen and PreviewAndSaveScreen)
   header: {
-    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray200,
+    backgroundColor: Colors.white,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
+    flex: 1,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#343A40',
+  headerTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#868E96',
-    marginTop: 5,
+  headerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+    textAlign: 'center',
+  },
+  headerAction: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  progressContainer: {
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.sm,
+    minWidth: 36,
+    textAlign: 'center',
   },
   listContainer: {
-    paddingHorizontal: 5,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.containerPadding,
   },
   photoContainer: {
     flex: 1 / 4,
-    aspectRatio: 1,
-    padding: 2,
+    aspectRatio: Layout.photoAspectRatio,
+    padding: Layout.gridGap / 2,
+  },
+  photoPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
   photo: {
     flex: 1,
-    borderRadius: 6,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.gray100,
   },
   selectionOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(96, 96, 96, 0.7)',
+    borderRadius: Radius.md,
+    borderWidth: 2,
+    borderColor: Colors.black,
+  },
+  selectionBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    width: 24,
+    height: 24,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.black,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    ...Shadow.medium,
   },
   selectionText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 24,
+    height: 24,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadow.small,
   },
   bottomContainer: {
-    padding: 20,
+    padding: Spacing.lg,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
   },
   framePreviewContainer: {
     marginBottom: 0,
-    backgroundColor: 'black',
+    backgroundColor: Colors.black,
     padding: 2,
-    borderRadius: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
   },
   frameVertical: {
     width: 70,
@@ -313,33 +407,40 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     width: '100%',
-    padding: 15,
-    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.medium,
   },
   completeButtonActive: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
   },
   completeButtonInactive: {
-    backgroundColor: '#CED4DA',
+    backgroundColor: Colors.gray200,
   },
   completeButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  completeButtonTextDisabled: {
+    color: Colors.gray600,
   },
   cutprintLabel: {
-    backgroundColor: '#000000',
-    height: 30,
+    backgroundColor: Colors.black,
+    height: 28,
     width: 140,
-    marginBottom: 20,
+    marginTop: 0,
+    marginBottom: Spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cutprintText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 1,
   },
 });
 
