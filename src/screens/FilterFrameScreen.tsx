@@ -21,7 +21,7 @@ import Theme from '../constants/theme';
 import CustomText from '../components/CustomText';
 import FilterSelector from '../components/FilterSelector';
 import FrameSelector from '../components/FrameSelector';
-// import PhotoEditingTools from './components/PhotoEditingTools'; // Removed as per request
+import PhotoEditingTools from '../components/PhotoEditingTools';
 import { getFilterById, applyFilterToStyle } from '../utils/filterEffects';
 import { getFrameById, applyFrameStyle } from '../utils/frameStyles';
 
@@ -38,7 +38,7 @@ type FilterFrameNavigationProp = StackNavigationProp<
 >;
 
 // Define the type for active editing sections
-type ActiveSection = 'filters' | 'frames' | null;
+type ActiveSection = 'filters' | 'frames' | 'editing' | null;
 
 const getRequiredPhotoCount = (cutType: string): number => {
   switch (cutType) {
@@ -62,12 +62,16 @@ const FilterFrameScreen = () => {
 
   const [selectedFilter, setSelectedFilter] = useState<string>('original');
   const [selectedFrame, setSelectedFrame] = useState<string>('no_frame');
-  // State to manage which editing section is active (filters, frames, or none)
+  // State to manage which editing section is active (filters, frames, editing, or none)
   const [activeSection, setActiveSection] = useState<ActiveSection>(null);
   const [beforeAfterMode, setBeforeAfterMode] = useState(false);
   const [labelText, setLabelText] = useState('cutprint');
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // Photo editing state
+  const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
+  const [editingToolsVisible, setEditingToolsVisible] = useState(false);
 
   // Animated value for the height of the editing panel
   const animatedPanelHeight = useRef(new Animated.Value(0)).current;
@@ -119,8 +123,14 @@ const FilterFrameScreen = () => {
   useEffect(() => {
     if (activeSection) {
       // Animate to a specific height when a section is active
+      // Different heights for different sections  
+      let targetHeight = 200; // Default for filters/frames
+      if (activeSection === 'editing') {
+        targetHeight = editingToolsVisible ? 250 : 60; // Reduced from 300 to 250 to avoid bottom button overlap
+      }
+      
       Animated.timing(animatedPanelHeight, {
-        toValue: 200, // This value should be adjusted based on the actual height of your FilterSelector/FrameSelector
+        toValue: targetHeight,
         duration: 300,
         useNativeDriver: false, // Height animation does not support native driver
       }).start();
@@ -132,7 +142,7 @@ const FilterFrameScreen = () => {
         useNativeDriver: false,
       }).start();
     }
-  }, [activeSection]); // Re-run animation when activeSection changes
+  }, [activeSection, editingToolsVisible]); // Re-run animation when activeSection or editingToolsVisible changes
 
   const getFrameStyle = () => {
     const baseStyle = {
@@ -181,7 +191,24 @@ const FilterFrameScreen = () => {
     };
   };
 
-  // Removed handleEditingToolChange and editingValues as PhotoEditingTools is commented out
+  // Photo editing tool handlers
+  const handleEditingToolChange = (toolId: string, value: number) => {
+    setEditingValues(prev => ({
+      ...prev,
+      [toolId]: value,
+    }));
+  };
+
+  const handleEditingToggle = () => {
+    setEditingToolsVisible(!editingToolsVisible);
+  };
+
+  // Auto-show editing tools when editing section is activated
+  useEffect(() => {
+    if (activeSection === 'editing' && !editingToolsVisible) {
+      setEditingToolsVisible(true);
+    }
+  }, [activeSection]);
 
   const getContrastTextColor = (hexColor: string) => {
     if (!hexColor || hexColor.length < 7) return '#FFFFFF';
@@ -192,19 +219,6 @@ const FilterFrameScreen = () => {
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   };
 
-  const applyImageFilters = (imageStyle: any) => {
-    if (!currentFilter) return imageStyle;
-
-    const filterStyle = { ...imageStyle };
-    const { transform } = currentFilter;
-
-    // Apply filter's base transform values
-    filterStyle.brightness = transform.brightness || 1;
-    filterStyle.contrast = transform.contrast || 1;
-    filterStyle.saturation = transform.saturation || 1;
-
-    return filterStyle;
-  };
 
   const renderPhotoSlot = (index: number) => {
     const hasPhoto = selectedPhotos[index];
@@ -216,8 +230,139 @@ const FilterFrameScreen = () => {
           <View style={{ position: 'relative', flex: 1 }}>
             <Image
               source={{ uri: selectedPhotos[index] }}
-              style={[styles.previewImage, applyImageFilters({})]}
+              style={[styles.previewImage]}
             />
+            {/* Apply editing filters as overlay effects since React Native doesn't support CSS filters */}
+            
+            {/* Brightness Overlay */}
+            {(editingValues.brightness !== undefined && editingValues.brightness !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.brightness > 0 ? 'rgba(255,255,255,' + Math.abs(editingValues.brightness / 100) * 0.4 + ')' : 'rgba(0,0,0,' + Math.abs(editingValues.brightness / 100) * 0.4 + ')',
+                  },
+                ]}
+              />
+            )}
+
+            {/* Contrast Overlay */}
+            {(editingValues.contrast !== undefined && editingValues.contrast !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.contrast > 0 ? 'rgba(255,255,255,' + Math.abs(editingValues.contrast / 100) * 0.15 + ')' : 'rgba(0,0,0,' + Math.abs(editingValues.contrast / 100) * 0.15 + ')',
+                    opacity: 0.7,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Saturation Overlay */}
+            {(editingValues.saturation !== undefined && editingValues.saturation !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.saturation > 0 ? 'rgba(255,80,80,' + Math.abs(editingValues.saturation / 100) * 0.1 + ')' : 'rgba(128,128,128,' + Math.abs(editingValues.saturation / 100) * 0.2 + ')',
+                    opacity: 0.6,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Temperature Overlay - Warm/Cool */}
+            {(editingValues.temperature !== undefined && editingValues.temperature !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.temperature > 0 ? 'rgba(255,180,120,' + Math.abs(editingValues.temperature / 100) * 0.15 + ')' : 'rgba(120,180,255,' + Math.abs(editingValues.temperature / 100) * 0.15 + ')',
+                    opacity: 0.5,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Tint Overlay - Magenta/Green */}
+            {(editingValues.tint !== undefined && editingValues.tint !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.tint > 0 ? 'rgba(255,120,255,' + Math.abs(editingValues.tint / 100) * 0.1 + ')' : 'rgba(120,255,120,' + Math.abs(editingValues.tint / 100) * 0.1 + ')',
+                    opacity: 0.4,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Highlights Overlay */}
+            {(editingValues.highlights !== undefined && editingValues.highlights !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.highlights > 0 ? 'rgba(255,255,255,' + Math.abs(editingValues.highlights / 100) * 0.2 + ')' : 'rgba(255,255,255,' + Math.abs(editingValues.highlights / 100) * 0.1 + ')',
+                    opacity: editingValues.highlights > 0 ? 0.3 : 0.5,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Shadows Overlay */}
+            {(editingValues.shadows !== undefined && editingValues.shadows !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.shadows > 0 ? 'rgba(255,255,255,' + Math.abs(editingValues.shadows / 100) * 0.15 + ')' : 'rgba(0,0,0,' + Math.abs(editingValues.shadows / 100) * 0.2 + ')',
+                    opacity: 0.4,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Vignette Effect - Simple dark border */}
+            {(editingValues.vignette !== undefined && editingValues.vignette > 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    borderColor: 'rgba(0,0,0,' + (editingValues.vignette / 100 * 0.8) + ')',
+                    borderWidth: Math.max(1, editingValues.vignette / 10),
+                    borderRadius: 5,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Sharpness Effect - Subtle contrast enhancement */}
+            {(editingValues.sharpness !== undefined && editingValues.sharpness !== 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: editingValues.sharpness > 0 ? 'rgba(255,255,255,' + Math.abs(editingValues.sharpness / 100) * 0.05 + ')' : 'rgba(128,128,128,' + Math.abs(editingValues.sharpness / 100) * 0.1 + ')',
+                    opacity: editingValues.sharpness > 0 ? 0.2 : 0.3,
+                  },
+                ]}
+              />
+            )}
+
+            {/* Grain Effect - Subtle noise pattern */}
+            {(editingValues.grain !== undefined && editingValues.grain > 0) && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    backgroundColor: 'rgba(128,128,128,' + (editingValues.grain / 100 * 0.1) + ')',
+                    opacity: 0.3,
+                  },
+                ]}
+              />
+            )}
             {/* Filter overlay */}
             {currentFilter?.transform.overlay && (
               <View
@@ -432,6 +577,7 @@ const FilterFrameScreen = () => {
         <View style={styles.modeTabContainer}>
           {renderModeTab('filters', '필터', 'camera-enhance')}
           {renderModeTab('frames', '프레임', 'image-frame')}
+          {renderModeTab('editing', '편집', 'tune')}
         </View>
 
         {/* Animated Editing Section */}
@@ -450,6 +596,15 @@ const FilterFrameScreen = () => {
               onFrameSelect={setSelectedFrame}
             />
           )}
+
+          {activeSection === 'editing' && (
+            <PhotoEditingTools
+              onToolChange={handleEditingToolChange}
+              currentValues={editingValues}
+              visible={editingToolsVisible}
+              onToggle={handleEditingToggle}
+            />
+          )}
         </Animated.View>
       </View>
 
@@ -460,9 +615,10 @@ const FilterFrameScreen = () => {
           onPress={() => {
             setSelectedFilter('original');
             setSelectedFrame('no_frame');
-            // setEditingValues({}); // Removed as PhotoEditingTools is removed
+            setEditingValues({}); // Reset editing values
             setBeforeAfterMode(false);
             setActiveSection(null); // Close the editing panel on reset
+            setEditingToolsVisible(false); // Reset editing tools visibility
             setLabelText('cutprint'); // Reset label text
             setIsEditingLabel(false); // Exit editing mode
           }}
@@ -727,6 +883,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
+    position: 'relative',
+    zIndex: 1,
   },
 
   // Bottom Action Buttons (Brand Aligned)
@@ -738,6 +896,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
     gap: Spacing.md,
+    position: 'relative',
+    zIndex: 2, // Ensure bottom buttons appear above other content
   },
   resetButton: {
     flexDirection: 'row',
