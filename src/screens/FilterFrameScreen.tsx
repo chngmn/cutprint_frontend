@@ -73,8 +73,8 @@ const FilterFrameScreen = () => {
   // Photo editing state
   const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
   const [editingToolsVisible, setEditingToolsVisible] = useState(false);
-  const [flipped, setFlipped] = useState<boolean[]>(() => selectedPhotos.map(() => false));
   const [processedPhotos, setProcessedPhotos] = useState<string[]>(selectedPhotos);
+  const [globalFlip, setGlobalFlip] = useState<boolean>(false);
 
   // Animated value for the height of the editing panel
   const animatedPanelHeight = useRef(new Animated.Value(0)).current;
@@ -148,14 +148,10 @@ const FilterFrameScreen = () => {
   }, [activeSection, editingToolsVisible]); // Re-run animation when activeSection or editingToolsVisible changes
 
   useEffect(() => {
-    setFlipped(selectedPhotos.map(() => false));
-  }, [selectedPhotos]);
-
-  useEffect(() => {
     const processImages = async () => {
       const newProcessedPhotos = await Promise.all(
-        selectedPhotos.map(async (uri, index) => {
-          if (flipped[index]) {
+        selectedPhotos.map(async (uri) => {
+          if (globalFlip) {
             const manipulatedImage = await manipulateAsync(
               uri,
               [{ flip: FlipType.Horizontal }],
@@ -170,7 +166,7 @@ const FilterFrameScreen = () => {
     };
 
     processImages();
-  }, [flipped]);
+  }, [globalFlip, selectedPhotos]);
 
   const getFrameStyle = () => {
     const baseStyle = {
@@ -252,14 +248,6 @@ const FilterFrameScreen = () => {
     const hasPhoto = processedPhotos[index];
     const slotStyle = getSlotStyle();
 
-    const toggleFlip = (photoIndex: number) => {
-        setFlipped(currentFlipped => {
-            const newFlipped = [...currentFlipped];
-            newFlipped[photoIndex] = !newFlipped[photoIndex];
-            return newFlipped;
-        });
-    };
-
     return (
       <View key={index} style={[styles.previewPhotoSlot, slotStyle]}>
         {hasPhoto ? (
@@ -268,12 +256,6 @@ const FilterFrameScreen = () => {
               source={{ uri: processedPhotos[index] }}
               style={[styles.previewImage]}
             />
-            <TouchableOpacity
-              style={styles.flipButton}
-              onPress={() => toggleFlip(index)}
-            >
-              <MaterialCommunityIcons name="flip-horizontal" size={24} color="white" />
-            </TouchableOpacity>
             {/* Apply editing filters as overlay effects since React Native doesn't support CSS filters */}
             
             {/* Brightness Overlay */}
@@ -570,6 +552,16 @@ const FilterFrameScreen = () => {
               </TouchableOpacity>
             </View>
           </ViewShot>
+          <TouchableOpacity
+            style={styles.globalFlipButton}
+            onPress={() => setGlobalFlip(!globalFlip)}
+          >
+            <MaterialCommunityIcons
+              name="flip-horizontal"
+              size={24}
+              color={globalFlip ? Colors.primary : "white"}
+            />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -663,7 +655,7 @@ const FilterFrameScreen = () => {
             setEditingToolsVisible(false); // Reset editing tools visibility
             setLabelText('cutprint'); // Reset label text
             setIsEditingLabel(false); // Exit editing mode
-            setFlipped(selectedPhotos.map(() => false)); // Reset flipped state
+            setGlobalFlip(false); // Reset global flip state
           }}
         >
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
@@ -782,6 +774,7 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     alignItems: 'center',
+    position: 'relative',
   },
   beforeAfterSplit: {
     flexDirection: 'row',
@@ -847,13 +840,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  flipButton: {
+  globalFlipButton: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 10,
+    right: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 15,
-    padding: 5,
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10, // Ensure it's above other elements
   },
   placeholder: {
     flex: 1,
