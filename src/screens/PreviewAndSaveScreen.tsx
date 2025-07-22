@@ -9,16 +9,19 @@ import {
   SafeAreaView,
   ScrollView,
   Text,
+  StatusBar,
+  Dimensions,
+  Modal,
+  Pressable,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import CustomText from '../components/CustomText';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { LinearGradient } from 'expo-linear-gradient';
+import Theme from '../constants/theme';
 
 type RootStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };
@@ -35,6 +38,9 @@ type PreviewAndSaveScreenNavigationProp = StackNavigationProp<any>;
 import * as FileSystem from 'expo-file-system';
 import { apiService } from '../services/apiService';
 
+const { width, height } = Dimensions.get('window');
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
+
 const PreviewAndSaveScreen = () => {
   const route = useRoute<PreviewAndSaveScreenRouteProp>();
   const navigation = useNavigation<PreviewAndSaveScreenNavigationProp>();
@@ -43,6 +49,8 @@ const PreviewAndSaveScreen = () => {
   const [friends, setFriends] = useState<{ id: number; name: string }[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [showFriendSelector, setShowFriendSelector] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -55,6 +63,57 @@ const PreviewAndSaveScreen = () => {
     };
     fetchFriends();
   }, []);
+
+  useEffect(() => {
+    // Get image dimensions to calculate aspect ratio
+    if (imageUri) {
+      Image.getSize(
+        imageUri,
+        (imageWidth, imageHeight) => {
+          const aspectRatio = imageWidth / imageHeight;
+          setImageAspectRatio(aspectRatio);
+          setImageDimensions({ width: imageWidth, height: imageHeight });
+        },
+        (error) => {
+          console.error('Error getting image size:', error);
+          // Fallback to square aspect ratio
+          setImageAspectRatio(1);
+        }
+      );
+    }
+  }, [imageUri]);
+
+  // Calculate optimal container dimensions based on image aspect ratio
+  const getOptimalImageContainerStyle = () => {
+    const maxWidth = width - (2 * Spacing.containerPadding);
+    const maxHeight = height * 0.55; // 55% of screen height for the image area
+
+    let containerWidth = maxWidth;
+    let containerHeight = maxWidth; // Default square
+
+    if (imageAspectRatio > 0) {
+      if (imageAspectRatio > 1) {
+        // Landscape image: width-constrained
+        containerWidth = maxWidth;
+        containerHeight = maxWidth / imageAspectRatio;
+
+        // If height exceeds max, constrain by height
+        if (containerHeight > maxHeight) {
+          containerHeight = maxHeight;
+          containerWidth = maxHeight * imageAspectRatio;
+        }
+      } else {
+        // Portrait image: height-constrained
+        containerHeight = Math.min(maxHeight, maxWidth / imageAspectRatio);
+        containerWidth = containerHeight * imageAspectRatio;
+      }
+    }
+
+    return {
+      width: containerWidth,
+      height: containerHeight,
+    };
+  };
 
   const saveToAlbum = async () => {
     try {
@@ -106,213 +165,354 @@ const PreviewAndSaveScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#343A40" />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <CustomText style={styles.title}>미리보기 및 저장</CustomText>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>미리보기</Text>
+          <Text style={styles.headerSubtitle}>사진을 인쇄하고 공유하기</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.friendButton}
+          onPress={() => setShowFriendSelector(true)}
+        >
+          <Ionicons name="person-add" size={20} color={Colors.textPrimary} />
+        </TouchableOpacity>
       </View>
 
+      {/* Preview Image */}
       <View style={styles.previewContainer}>
-        <Image source={{ uri: imageUri }} style={styles.previewImage} />
-        <View style={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          zIndex: 10,
-        }}>
-          <TouchableOpacity
-            onPress={() => setShowFriendSelector(prev => !prev)}
-            activeOpacity={0.85}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.85)',
-              borderRadius: 16,
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              shadowColor: '#228be6',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.10,
-              shadowRadius: 3,
-              elevation: 2,
-              borderWidth: 1,
-              borderColor: '#4dabf7',
-            }}
-          >
-            <Ionicons name="person-add" size={16} color="#228be6" style={{ marginRight: 4 }} />
-            <Text style={{ color: '#228be6', fontWeight: 'bold', fontSize: 13 }}>
-              친구 선택
-            </Text>
-          </TouchableOpacity>
-          {showFriendSelector && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 36,
-                right: 0,
-                width: 160,
-                maxHeight: 260,
-                backgroundColor: 'rgba(255,255,255,0.97)',
-                borderRadius: 14,
-                paddingVertical: 8,
-                paddingHorizontal: 0,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.13,
-                shadowRadius: 8,
-                elevation: 6,
-                zIndex: 20,
-              }}
-            >
-              <ScrollView style={{ maxHeight: 180 }}>
-                {friends.length === 0 ? (
-                  <CustomText style={{ color: '#adb5bd', fontSize: 14, textAlign: 'center', marginVertical: 12 }}>
-                    친구가 없습니다.
-                  </CustomText>
-                ) : (
-                  friends.map(friend => {
-                    const selected = selectedFriends.includes(friend.id);
-                    return (
-                      <TouchableOpacity
-                        key={friend.id}
-                        onPress={() => {
-                          setSelectedFriends(prev =>
-                            prev.includes(friend.id)
-                              ? prev.filter(id => id !== friend.id)
-                              : [...prev, friend.id]
-                          );
-                        }}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: 10,
-                          paddingHorizontal: 16,
-                          backgroundColor: selected ? '#e7f5ff' : 'transparent',
-                          borderBottomWidth: 1,
-                          borderBottomColor: '#f1f3f5',
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name={selected ? 'checkbox' : 'square-outline'}
-                          size={20}
-                          color={selected ? '#228be6' : '#adb5bd'}
-                          style={{ marginRight: 10 }}
-                        />
-                        <Text style={{
-                          color: selected ? '#228be6' : '#343a40',
-                          fontWeight: selected ? 'bold' : 'normal',
-                          fontSize: 15,
-                        }}>
-                          {friend.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })
-                )}
-              </ScrollView>
-              <TouchableOpacity
-                onPress={() => setShowFriendSelector(false)}
-                style={{
-                  marginTop: 8,
-                  marginHorizontal: 12,
-                  backgroundColor: '#4dabf7',
-                  borderRadius: 10,
-                  paddingVertical: 8,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  elevation: 2,
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>
-                  선택 완료
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        <View style={[styles.imageFrame, getOptimalImageContainerStyle()]}>
+          <Image source={{ uri: imageUri }} style={styles.previewImage} />
         </View>
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.actionButton} onPress={saveToAlbum}>
-          <Ionicons name="download-outline" size={28} color="#495057" />
-          <CustomText style={styles.buttonText}>사진첩에 저장</CustomText>
+      {/* Action Buttons */}
+      <View style={styles.actionContainer}>
+        <TouchableOpacity style={styles.primaryAction} onPress={saveToAlbum}>
+          <Ionicons name="download" size={24} color={Colors.white} />
+          <Text style={styles.primaryActionText}>앱 앨범에 저장</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={printImage}>
-          <Ionicons name="print-outline" size={28} color="#495057" />
-          <CustomText style={styles.buttonText}>인쇄하기</CustomText>
-        </TouchableOpacity>
+        <View style={styles.secondaryActions}>
+          <TouchableOpacity style={styles.secondaryAction} onPress={printImage}>
+            <Ionicons name="print-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.secondaryActionText}>출력</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={shareToInstagramStory}
-        >
-          <Ionicons name="logo-instagram" size={28} color="#495057" />
-          <CustomText style={styles.buttonText}>스토리에 공유</CustomText>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryAction} onPress={shareToInstagramStory}>
+            <Ionicons name="logo-instagram" size={20} color={Colors.textPrimary} />
+            <Text style={styles.secondaryActionText}>공유</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Friend Selector Modal */}
+      <Modal
+        visible={showFriendSelector}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFriendSelector(false)}
+      >
+        <Pressable
+          style={styles.modalBackground}
+          onPress={() => setShowFriendSelector(false)}
+        >
+          <View style={styles.friendModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>친구와 함께 저장하기</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowFriendSelector(false)}
+              >
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.friendList}>
+              {friends.length === 0 ? (
+                <View style={styles.emptyFriends}>
+                  <Ionicons name="person-outline" size={48} color={Colors.gray400} />
+                  <Text style={styles.emptyFriendsText}>No friends yet</Text>
+                </View>
+              ) : (
+                friends.map(friend => {
+                  const selected = selectedFriends.includes(friend.id);
+                  return (
+                    <TouchableOpacity
+                      key={friend.id}
+                      style={[styles.friendItem, selected && styles.friendItemSelected]}
+                      onPress={() => {
+                        setSelectedFriends(prev =>
+                          prev.includes(friend.id)
+                            ? prev.filter(id => id !== friend.id)
+                            : [...prev, friend.id]
+                        );
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.friendInfo}>
+                        <View style={[styles.avatar, selected && styles.avatarSelected]}>
+                          <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>
+                            {friend.name[0].toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={[styles.friendName, selected && styles.friendNameSelected]}>
+                          {friend.name}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={24}
+                        color={selected ? Colors.textPrimary : Colors.gray400}
+                      />
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={() => setShowFriendSelector(false)}
+            >
+              <Text style={styles.confirmButtonText}>
+                {selectedFriends.length > 0 ? `${selectedFriends.length}명의 친구 선택 완료` : '완료'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  // Main Container
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.gray100,
   },
+
+  // Header Styles
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: Colors.gray100,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#343A40',
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  friendButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+
+  // Preview Section
   previewContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    position: 'relative', // 오버레이 버튼을 위해 추가
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.xl,
+  },
+  imageFrame: {
+    overflow: 'hidden',
+    backgroundColor: Colors.gray50,
+    alignSelf: 'center',
+    ...Shadow.medium,
   },
   previewImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  buttonContainer: {
+
+  // Action Buttons
+  actionContainer: {
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  primaryAction: {
+    backgroundColor: Colors.textPrimary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+  },
+  primaryActionText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+    marginLeft: Spacing.sm,
+  },
+  secondaryActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
-    backgroundColor: '#FFFFFF',
   },
-  actionButton: {
+  secondaryAction: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    marginHorizontal: Spacing.xs,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+    backgroundColor: Colors.white,
   },
-  buttonText: {
-    fontSize: 14,
-    color: '#495057',
-    marginTop: 8,
+  secondaryActionText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
+    marginLeft: Spacing.xs,
+  },
+
+  // Friend Modal Styles
+  modalBackground: {
+    flex: 1,
+    backgroundColor: Colors.overlayDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  friendModal: {
+    width: width * 0.9,
+    maxWidth: 400,
+    maxHeight: height * 0.7,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    ...Shadow.large,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  closeButton: {
+    padding: Spacing.xs,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.gray100,
+  },
+
+  // Friend List
+  friendList: {
+    maxHeight: height * 0.4,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyFriends: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  emptyFriendsText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  friendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.xs,
+    backgroundColor: Colors.surfaceVariant,
+  },
+  friendItemSelected: {
+    backgroundColor: Colors.gray100,
+  },
+  friendInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  avatarSelected: {
+    backgroundColor: Colors.textPrimary,
+  },
+  avatarText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  avatarTextSelected: {
+    color: Colors.white,
+  },
+  friendName: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  friendNameSelected: {
+    fontWeight: Typography.fontWeight.semibold,
+  },
+
+  // Confirm Button
+  confirmButton: {
+    backgroundColor: Colors.textPrimary,
+    marginHorizontal: Spacing.xl,
+    marginVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
   },
 });
 

@@ -6,6 +6,9 @@ import {
   AppState,
   Button,
   TouchableOpacity,
+  Animated,
+  Dimensions,
+  PanResponder,
 } from 'react-native';
 import CustomText from '../components/CustomText';
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
@@ -16,6 +19,10 @@ import {
   useRoute,
   useFocusEffect,
 } from '@react-navigation/native';
+import Theme from '../constants/theme';
+
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type HomeStackParamList = {
@@ -37,8 +44,14 @@ const CameraScreen = () => {
   const [shotCount, setShotCount] = useState<number>(0);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [showControls, setShowControls] = useState<boolean>(true);
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation<CameraScreenNavigationProp>();
+
+  // Animation values
+  const progressAnimation = useRef(new Animated.Value(0)).current;
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const countdownScale = useRef(new Animated.Value(1)).current;
 
   // Hide tab bar and header when screen is focused
   useFocusEffect(
@@ -123,6 +136,35 @@ const CameraScreen = () => {
     };
   }, [isCapturing, countdown, shotCount]);
 
+  // Progress animation
+  useEffect(() => {
+    if (shotCount > 0) {
+      Animated.timing(progressAnimation, {
+        toValue: shotCount / 8,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [shotCount]);
+
+  // Countdown animation
+  useEffect(() => {
+    if (countdown > 0 && countdown <= 3) {
+      Animated.sequence([
+        Animated.timing(countdownScale, {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(countdownScale, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [countdown]);
+
   const takePicture = async () => {
     if (cameraRef.current) {
       try {
@@ -163,6 +205,23 @@ const CameraScreen = () => {
     setCountdown((prev) => prev + 5);
   };
 
+  const handleScreenTap = () => {
+    // Quick shot on screen tap
+    if (isCapturing && countdown > 1) {
+      setCountdown(0);
+    }
+  };
+
+  const toggleControls = () => {
+    const toValue = showControls ? 0 : 1;
+    Animated.timing(controlsOpacity, {
+      toValue,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setShowControls(!showControls);
+  };
+
   if (!permission) {
     // Permissions are still loading
     return <View />;
@@ -183,38 +242,89 @@ const CameraScreen = () => {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={'front'} ref={cameraRef}>
-        <View style={styles.overlay}>
-          {isCapturing && shotCount < 8 && (
-            <>
-              <CustomText style={styles.countdownText}>{countdown}</CustomText>
-              <CustomText
-                style={styles.shotCountText}
-              >{`${shotCount + 1}/8`}</CustomText>
-            </>
-          )}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.addTimeButton}
-              onPress={handleAddTime}
-            >
-              <MaterialCommunityIcons
-                name="clock-plus-outline"
-                size={28}
-                color="white"
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={handleScreenTap}
+        >
+          {/* Progress Bar */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: progressAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
               />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickShotButton}
-              onPress={handleQuickShot}
-            >
-              <MaterialCommunityIcons
-                name={'camera-enhance-outline' as any}
-                size={28}
-                color="white"
-              />
-            </TouchableOpacity>
+            </View>
+            <CustomText style={styles.progressText}>
+              {shotCount}/8
+            </CustomText>
           </View>
-        </View>
+
+          {/* Countdown Display */}
+          {isCapturing && shotCount < 8 && countdown > 0 && (
+            <Animated.View
+              style={[
+                styles.countdownContainer,
+                { transform: [{ scale: countdownScale }] }
+              ]}
+            >
+              <CustomText style={styles.countdownText}>{countdown}</CustomText>
+            </Animated.View>
+          )}
+
+          {/* Hint Text */}
+          {isCapturing && shotCount < 8 && countdown > 3 && (
+            <Animated.View style={[styles.hintContainer, { opacity: controlsOpacity }]}>
+              <CustomText style={styles.hintText}>화면을 터치하면 바로 촬영</CustomText>
+            </Animated.View>
+          )}
+
+          {/* Multi-function Control Button */}
+          <Animated.View
+            style={[
+              styles.controlButton,
+              { opacity: controlsOpacity }
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.multiButton}
+              onPress={handleAddTime}
+              onLongPress={handleQuickShot}
+              delayLongPress={500}
+            >
+              <View style={styles.buttonContent}>
+                <MaterialCommunityIcons
+                  name="timer-outline"
+                  size={24}
+                  color={Colors.white}
+                />
+                <CustomText style={styles.buttonText}>+5초</CustomText>
+              </View>
+              <View style={styles.buttonHint}>
+                <CustomText style={styles.buttonHintText}>길게 누르면 즉시 촬영</CustomText>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Hide/Show Controls Button */}
+          <TouchableOpacity
+            style={styles.toggleButton}
+            onPress={toggleControls}
+          >
+            <Ionicons
+              name={showControls ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={Colors.white}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
       </CameraView>
     </View>
   );
@@ -223,7 +333,7 @@ const CameraScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: Colors.black,
   },
   camera: {
     flex: 1,
@@ -231,56 +341,125 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'transparent',
-    justifyContent: 'center',
+  },
+
+  // Progress Bar Styles
+  progressContainer: {
+    position: 'absolute',
+    top: 60,
+    left: Spacing.containerPadding,
+    right: Spacing.containerPadding,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: Colors.overlayLight,
+    borderRadius: Radius.xs,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: Radius.xs,
+  },
+  progressText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+    textShadowColor: Colors.overlayDark,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    minWidth: 32,
+    textAlign: 'center',
+  },
+
+  // Countdown Styles
+  countdownContainer: {
+    position: 'absolute',
+    top: screenHeight * 0.35,
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
-  buttonRow: {
+  countdownText: {
+    fontSize: 96,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.white,
+    textShadowColor: Colors.overlayDark,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    textAlign: 'center',
+  },
+
+  // Hint Text
+  hintContainer: {
+    position: 'absolute',
+    bottom: 200,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  hintText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.white,
+    textAlign: 'center',
+    backgroundColor: Colors.overlayDark,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.md,
+  },
+
+  // Control Button Styles
+  controlButton: {
     position: 'absolute',
     bottom: 100,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  countdownText: {
+  multiButton: {
+    backgroundColor: Colors.overlayDark,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 120,
+    ...Shadow.medium,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  buttonText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+  },
+  buttonHint: {
+    marginTop: Spacing.xs,
+  },
+  buttonHintText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+  },
+
+  // Toggle Button
+  toggleButton: {
     position: 'absolute',
     top: 60,
-    left: 30,
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 5,
-  },
-  shotCountText: {
-    position: 'absolute',
-    top: 70,
-    right: 25,
-    fontSize: 25,
-    fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 5,
-  },
-  addTimeButton: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 25,
-    justifyContent: 'center',
+    right: Spacing.containerPadding,
+    backgroundColor: Colors.overlayDark,
+    width: 40,
+    height: 40,
+    borderRadius: Radius.full,
     alignItems: 'center',
-    marginRight: 24,
-  },
-  quickShotButton: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 25,
     justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

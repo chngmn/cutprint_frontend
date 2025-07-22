@@ -78,31 +78,15 @@ export default function AlbumScreen() {
     setRefreshing(false);
   };
 
-  // Header Component
+  // Header Component - Minimal Design like LoginScreen
   const AlbumHeader = () => (
-    <View style={styles.header}>
-      <LinearGradient
-        colors={Colors.gradient.primary as any}
-        style={styles.headerGradient}
-      >
-        <SafeAreaView>
-          <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>My Photos</Text>
-              <Text style={styles.headerSubtitle}>{appPhotos.length} photos</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.headerButton}>
-                <Ionicons name="search" size={24} color={Colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton}>
-                <Ionicons name="options" size={24} color={Colors.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-    </View>
+    <SafeAreaView style={styles.header}>
+      <View style={styles.headerContent}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerSubtitle}>{appPhotos.length} photos</Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 
   const handleDeletePhoto = async (photo: Photo) => {
@@ -217,32 +201,31 @@ export default function AlbumScreen() {
     setShowActionMenu(true);
   };
 
-  // Modern Grid Configuration
-  const numColumns = 2;
-  const gridSpacing = Spacing.sm;
-  const itemSize = (width - (numColumns + 1) * gridSpacing) / numColumns;
+  // 3-Column Grid Configuration
+  const numColumns = 3;
+  const gridSpacing = Spacing.xs;
+  const sidePadding = 8; // 원하는 값으로
+  const itemSize = (width - sidePadding * 2 - (numColumns - 1) * gridSpacing) / numColumns;
 
-  // Photo Item Component
+  // Photo Item Component - Minimal Design
   const PhotoItem = ({ item, index }: { item: Photo, index: number }) => (
     <TouchableOpacity
-      style={[styles.photoItem, { width: itemSize, height: itemSize }]}
+      style={[
+        styles.photoItem,
+        {
+          width: itemSize,
+          height: itemSize,
+          marginRight: (index + 1) % numColumns === 0 ? 0 : gridSpacing
+        }
+      ]}
       activeOpacity={0.9}
       onPress={() => setSelectedPhoto(item)}
     >
-      <View style={styles.photoContainer}>
-        <Image
-          source={{ uri: item.url }}
-          style={styles.photoImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['transparent', Colors.overlayLight] as any}
-          style={styles.photoOverlay}
-        />
-        <View style={styles.photoInfo}>
-          <Text style={styles.photoDate}>Today</Text>
-        </View>
-      </View>
+      <Image
+        source={{ uri: item.url }}
+        style={styles.photoImage}
+        resizeMode="cover"
+      />
     </TouchableOpacity>
   );
 
@@ -262,7 +245,7 @@ export default function AlbumScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <AlbumHeader />
 
       {appPhotos.length === 0 ? (
@@ -274,14 +257,22 @@ export default function AlbumScreen() {
           keyExtractor={(item) => item.id}
           numColumns={numColumns}
           contentContainerStyle={styles.photoGrid}
-          columnWrapperStyle={styles.photoRow}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={12}
+          updateCellsBatchingPeriod={50}
+          windowSize={10}
+          getItemLayout={(data, index) => ({
+            length: itemSize,
+            offset: Math.floor(index / numColumns) * (itemSize + gridSpacing),
+            index,
+          })}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
+              colors={[Colors.textPrimary]}
+              tintColor={Colors.textPrimary}
             />
           }
         />
@@ -394,93 +385,45 @@ const styles = StyleSheet.create({
   // Main Container
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
 
-  // Header Styles
+  // Header Styles - Minimal like LoginScreen
   header: {
-    zIndex: 10,
-  },
-  headerGradient: {
-    paddingBottom: Spacing.md,
+    backgroundColor: Colors.white,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
   },
   headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: Spacing.containerPadding,
     paddingTop: Spacing.sm,
   },
   headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.white,
-    fontFamily: Typography.fontFamily.bold,
+    alignItems: 'center',
   },
   headerSubtitle: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.white,
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerButton: {
-    padding: Spacing.sm,
-    marginLeft: Spacing.xs,
-    borderRadius: Radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: Typography.fontWeight.medium,
   },
 
-  // Photo Grid Styles
+  // Photo Grid Styles - Minimal Design
   photoGrid: {
-    padding: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  photoRow: {
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 8, // ← 좌우만 8px로
+    paddingTop: Spacing.containerPadding,
+    paddingBottom: Spacing.xl,
   },
   photoItem: {
-    marginBottom: Spacing.md,
-    borderRadius: Radius.lg,
+    marginBottom: Spacing.xs,
     overflow: 'hidden',
-    ...Shadow.medium,
-  },
-  photoContainer: {
-    flex: 1,
-    position: 'relative',
+    backgroundColor: Colors.gray50,
   },
   photoImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: Colors.gray200,
-  },
-  photoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-  },
-  photoInfo: {
-    position: 'absolute',
-    bottom: Spacing.sm,
-    left: Spacing.sm,
-    right: Spacing.sm,
-  },
-  photoDate: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.white,
-    fontWeight: Typography.fontWeight.medium,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    backgroundColor: Colors.gray100,
   },
 
   // Empty State Styles
@@ -491,19 +434,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyTitle: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
   },
   emptySubtitle: {
-    fontSize: Typography.fontSize.base,
+    fontSize: Typography.fontSize.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.lineHeight.relaxed * Typography.fontSize.base,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.sm,
   },
-  // Fullscreen Modal Styles
+  // Fullscreen Modal Styles - Minimal
   modalBackground: {
     flex: 1,
     backgroundColor: Colors.overlayDark,
@@ -511,53 +454,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullImage: {
-    width: width * 0.95,
-    height: width * 0.95,
-    borderRadius: Radius.lg,
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: Radius.md,
   },
-  // FAB Button
+  // FAB Button - Minimal
   fab: {
     position: 'absolute',
     bottom: Spacing.xl,
     right: Spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.secondary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadow.fab,
+    ...Shadow.medium,
   },
-  // Action Menu Styles
+  // Action Menu Styles - Minimal like LoginScreen modals
   actionModalBackground: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: Colors.overlayDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionMenu: {
+    width: width * 0.9,
+    maxWidth: 400,
     backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    minWidth: 280,
-    maxWidth: width * 0.85,
+    padding: Spacing.xl,
     ...Shadow.large,
   },
   actionMenuTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   actionMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.xs,
+    height: 56,
     backgroundColor: Colors.surfaceVariant,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   actionMenuItemDisabled: {
     opacity: 0.5,
@@ -566,10 +511,9 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     marginLeft: Spacing.md,
     color: Colors.textPrimary,
-    fontWeight: Typography.fontWeight.medium,
   },
   deleteMenuItem: {
-    backgroundColor: '#FFF5F5',
+    backgroundColor: Colors.white,
     borderColor: Colors.error,
     borderWidth: 1,
   },
@@ -577,15 +521,17 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   cancelButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
+    backgroundColor: Colors.textPrimary,
     borderRadius: Radius.md,
-    backgroundColor: Colors.gray100,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
   },
   cancelButtonText: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textSecondary,
+    color: Colors.white,
     textAlign: 'center',
   },
 });

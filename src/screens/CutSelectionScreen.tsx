@@ -9,10 +9,13 @@ import {
 import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import Theme from '../constants/theme';
+
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
 
 const getRequiredPhotoCount = (cutType: string): number => {
   switch (cutType) {
-    case 'Vertical 4-cut':
+    case 'portrait 4-cut':
     case '4-cut grid':
       return 4;
     case '6-cut grid':
@@ -28,7 +31,7 @@ const FramePreview = ({ cutType }: { cutType: string }) => {
 
   const getFrameStyle = () => {
     switch (cutType) {
-      case 'Vertical 4-cut':
+      case 'portrait 4-cut':
         return styles.frameVertical;
       case '4-cut grid':
         return styles.frameGrid4;
@@ -41,7 +44,7 @@ const FramePreview = ({ cutType }: { cutType: string }) => {
 
   const getSlotStyle = () => {
     switch (cutType) {
-      case 'Vertical 4-cut':
+      case 'portrait 4-cut':
         return styles.slotVertical;
       case '4-cut grid':
         return styles.slotGrid4;
@@ -54,7 +57,7 @@ const FramePreview = ({ cutType }: { cutType: string }) => {
 
   const getCutprintLabelStyle = () => {
     switch (cutType) {
-      case 'Vertical 4-cut':
+      case 'portrait 4-cut':
         return { width: 60 };
       case '4-cut grid':
         return { width: 120 };
@@ -95,10 +98,14 @@ type CutLayoutProps = {
 const CutLayout = ({ cutType, onPress, containerStyle }: CutLayoutProps) => {
   return (
     <TouchableOpacity
-      style={[styles.optionContainer, containerStyle]}
+      style={[styles.optionCard, containerStyle]}
       onPress={onPress}
+      activeOpacity={0.8}
     >
-      <FramePreview cutType={cutType} />
+      <View style={styles.cardContent}>
+        <FramePreview cutType={cutType} />
+        {/* <CustomText style={styles.cardLabel}>{cutType}</CustomText> */}
+      </View>
     </TouchableOpacity>
   );
 };
@@ -118,17 +125,20 @@ const CutSelectionScreen = () => {
       <View style={styles.optionsContainer}>
         <View style={styles.topRow}>
           <CutLayout
-            cutType="Vertical 4-cut"
-            onPress={() => handleCutSelect('Vertical 4-cut')}
+            cutType="portrait 4-cut"
+            onPress={() => handleCutSelect('portrait 4-cut')}
+            containerStyle={styles.smallCard}
           />
           <CutLayout
             cutType="4-cut grid"
             onPress={() => handleCutSelect('4-cut grid')}
+            containerStyle={styles.smallCard}
           />
         </View>
         <CutLayout
           cutType="6-cut grid"
           onPress={() => handleCutSelect('6-cut grid')}
+          containerStyle={styles.largeCard}
         />
       </View>
     </SafeAreaView>
@@ -138,62 +148,72 @@ const CutSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
     alignItems: 'center',
   },
   header: {
     width: '100%',
-    paddingTop: 80,
-    paddingBottom: 50,
+    paddingTop: Spacing['2xl'],
+    paddingBottom: Spacing.xl,
     alignItems: 'center',
+    paddingHorizontal: Spacing.containerPadding,
   },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#343A40',
+    fontSize: Typography.fontSize['xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   optionsContainer: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.containerPadding,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 30, // Increased margin for more space
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
-  optionContainer: {
+
+  // Modern Card Design
+  optionCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    ...Shadow.medium,
+    overflow: 'hidden',
+  },
+  cardContent: {
     alignItems: 'center',
-    justifyContent: 'center',
+    padding: Spacing.lg,
   },
-  topImage: {
-    width: 100,
-    height: 180,
-    resizeMode: 'contain',
+  cardLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
-  bottomImage: {
-    width: 180, // Made the bottom image wider
-    height: 160,
-    resizeMode: 'contain',
+  smallCard: {
+    flex: 1,
+    minHeight: 220,
   },
-  optionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-    marginTop: 15, // Added margin top for spacing
+  largeCard: {
+    width: '100%',
+    minHeight: 200,
   },
   framePreviewContainer: {
     marginBottom: 0,
-    backgroundColor: 'black',
+    backgroundColor: Colors.black,
     padding: 2,
-    borderRadius: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
   },
   frameVertical: {
     width: 60,
@@ -212,50 +232,41 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   photoSlot: {
-    backgroundColor: '#E9ECEF',
+    backgroundColor: Colors.gray200,
   },
   slotVertical: {
     width: '100%',
     height: '25%',
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderColor: '#000000',
+    borderWidth: 1,
+    borderColor: Colors.black,
   },
   slotGrid4: {
     width: '50%',
     height: '50%',
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderColor: '#000000',
+    borderWidth: 1,
+    borderColor: Colors.black,
   },
   slotGrid6: {
     width: '50%',
     height: '33.33%',
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderColor: '#000000',
+    borderWidth: 1,
+    borderColor: Colors.black,
   },
   placeholder: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
   },
   cutprintLabel: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
     height: 20,
-    marginBottom: 20,
+    marginBottom: Spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cutprintText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
   },
 });
 
