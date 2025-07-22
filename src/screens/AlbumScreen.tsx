@@ -24,9 +24,16 @@ import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../services/apiService';
 import Theme from '../constants/theme';
+import PhotoPermissionSelector, { PhotoVisibility } from '../components/PhotoPermissionSelector';
+import PhotoPermissionIndicator from '../components/PhotoPermissionIndicator';
 
 type FrameType = '1x4' | '2x2' | '3x2' | 'Vertical 4-cut' | '4-cut grid' | '6-cut grid';
-interface Photo { id: string; url: string; frameType: FrameType; }
+interface Photo {
+  id: number;
+  url: string;
+  frameType: FrameType;
+  visibility?: PhotoVisibility;
+}
 
 const { width, height } = Dimensions.get('window');
 const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
@@ -42,6 +49,8 @@ export default function AlbumScreen() {
   const [selectedPhotoForAction, setSelectedPhotoForAction] = useState<Photo | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showPermissionSelector, setShowPermissionSelector] = useState(false);
+  const [selectedPhotoForPermission, setSelectedPhotoForPermission] = useState<Photo | null>(null);
 
   const fetchPhotos = async () => {
     try {
@@ -53,7 +62,7 @@ export default function AlbumScreen() {
         photos = await apiService.getMyPhotos();
         // console.log(photos);
       }
-      setAppPhotos(photos.map(p => ({ ...p, frameType: '2x2' }))); // Assuming a default frameType for now
+      setAppPhotos(photos.map(p => ({ ...p, frameType: '2x2', visibility: p.visibility || 'ALL_FRIENDS' })));
     } catch (error) {
       console.error('Error fetching photos:', error);
       Alert.alert('오류', '사진을 불러오는 중 오류가 발생했습니다.');
@@ -101,7 +110,7 @@ export default function AlbumScreen() {
           onPress: async () => {
             try {
               setLoading('deleting');
-              await apiService.deletePhoto(parseInt(photo.id));
+              await apiService.deletePhoto(photo.id);
               await fetchPhotos(); // 목록 새로고침
               Alert.alert('성공', '사진이 삭제되었습니다.');
             } catch (error) {
@@ -201,6 +210,44 @@ export default function AlbumScreen() {
     setShowActionMenu(true);
   };
 
+  const openPermissionSelector = (photo: Photo) => {
+    setSelectedPhotoForPermission(photo);
+    setShowPermissionSelector(true);
+    setShowActionMenu(false);
+  };
+
+  const handlePermissionChange = async (newVisibility: PhotoVisibility) => {
+    if (!selectedPhotoForPermission) return;
+
+    try {
+      setLoading('updating-permission');
+
+      await apiService.updatePhotoVisibility(
+        selectedPhotoForPermission.id,
+        newVisibility
+      );
+
+      // Update local state
+      setAppPhotos(prevPhotos =>
+        prevPhotos.map(photo =>
+          photo.id === selectedPhotoForPermission.id
+            ? { ...photo, visibility: newVisibility }
+            : photo
+        )
+      );
+
+      Alert.alert('완료', '사진 공개 설정이 변경되었습니다.');
+    } catch (error) {
+      console.error('Error updating photo permission:', error);
+      Alert.alert('오류', '사진 공개 설정 변경 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(null);
+      setShowPermissionSelector(false);
+      setSelectedPhotoForPermission(null);
+      setSelectedPhotoForAction(null);
+    }
+  };
+
   // 3-Column Grid Configuration
   const numColumns = 3;
   const gridSpacing = Spacing.xs;
@@ -226,6 +273,14 @@ export default function AlbumScreen() {
         style={styles.photoImage}
         resizeMode="cover"
       />
+      {/* Permission Indicator - only show for non-default visibility */}
+      {item.visibility && item.visibility !== 'ALL_FRIENDS' && (
+        <PhotoPermissionIndicator
+          visibility={item.visibility}
+          size="small"
+          style={styles.permissionIndicator}
+        />
+      )}
     </TouchableOpacity>
   );
 
@@ -254,7 +309,7 @@ export default function AlbumScreen() {
         <FlatList
           data={appPhotos}
           renderItem={PhotoItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           numColumns={numColumns}
           contentContainerStyle={styles.photoGrid}
           showsVerticalScrollIndicator={false}
@@ -279,7 +334,7 @@ export default function AlbumScreen() {
       )}
 
       {/* 전체화면 모달 */}
-      {selectedPhoto && !showActionMenu && (
+      {selectedPhoto && !showActionMenu && !showPermissionSelector && (
         <Modal
           visible={true}
           transparent={true}
@@ -356,6 +411,15 @@ export default function AlbumScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                style={[styles.actionMenuItem, loading === 'updating-permission' && styles.actionMenuItemDisabled]}
+                onPress={() => openPermissionSelector(selectedPhotoForAction)}
+                disabled={loading !== null}
+              >
+                <MaterialCommunityIcons name="eye-settings" size={24} color="#34495E" />
+                <Text style={styles.actionMenuText}>공개 설정</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={[styles.actionMenuItem, styles.deleteMenuItem, loading === 'deleting' && styles.actionMenuItemDisabled]}
                 onPress={() => handleDeletePhoto(selectedPhotoForAction)}
                 disabled={loading !== null}
@@ -376,6 +440,19 @@ export default function AlbumScreen() {
             </View>
           </Pressable>
         </Modal>
+      )}
+
+      {/* Permission Selector Modal */}
+      {selectedPhotoForPermission && (
+        <PhotoPermissionSelector
+          visible={showPermissionSelector}
+          currentVisibility={selectedPhotoForPermission.visibility || 'ALL_FRIENDS'}
+          onSelect={handlePermissionChange}
+          onClose={() => {
+            setShowPermissionSelector(false);
+            setSelectedPhotoForPermission(null);
+          }}
+        />
       )}
     </View>
   );
@@ -533,5 +610,11 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
     textAlign: 'center',
+  },
+  // Permission Indicator Styles
+  permissionIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
 });

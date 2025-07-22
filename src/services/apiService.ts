@@ -102,11 +102,25 @@ class ApiService {
     return response;
   }
 
+  // 친한 친구 토글
+  async toggleCloseFriend(friendId: string): Promise<any> {
+    const response = await this.makeRequest(`/friendship/close-friend/${friendId}`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  // 친한 친구 목록 조회
+  async getCloseFriends(): Promise<any[]> {
+    const response = await this.makeRequest('/friendship/close-friends');
+    return response.data;
+  }
+
   // 사진 업로드 (base64)
-  async uploadPhoto(base64Image: string, friendIds?: number[]): Promise<any> {
+  async uploadPhoto(base64Image: string, friendIds?: number[], visibility?: 'PRIVATE' | 'CLOSE_FRIENDS' | 'ALL_FRIENDS'): Promise<any> {
     return this.makeRequest('/photos/upload-base64', {
       method: 'POST',
-      body: JSON.stringify({ image: base64Image, friendIds }),
+      body: JSON.stringify({ image: base64Image, friendIds, visibility: visibility || 'ALL_FRIENDS' }),
     });
   }
 
@@ -124,6 +138,14 @@ class ApiService {
   async deletePhoto(photoId: number): Promise<any> {
     return this.makeRequest(`/photos/${photoId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // 사진 공개 설정 업데이트
+  async updatePhotoVisibility(photoId: number, visibility: 'PRIVATE' | 'CLOSE_FRIENDS' | 'ALL_FRIENDS'): Promise<any> {
+    return this.makeRequest(`/photos/${photoId}/visibility`, {
+      method: 'POST',
+      body: JSON.stringify({ visibility }),
     });
   }
 

@@ -19,12 +19,14 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Theme from '../constants/theme';
+import PhotoPermissionIndicator, { PhotoVisibility } from '../components/PhotoPermissionIndicator';
 
 type FriendAlbumScreenRouteProp = RouteProp<RootStackParamList, 'FriendAlbum'>;
 
 interface Photo { 
-  id: string; 
-  url: string; 
+  id: number; 
+  url: string;
+  visibility?: PhotoVisibility;
 }
 
 const { width } = Dimensions.get('window');
@@ -101,6 +103,14 @@ const FriendAlbumScreen = () => {
         style={styles.photoImage}
         resizeMode="cover"
       />
+      {/* Permission Indicator - only show for close friends photos */}
+      {item.visibility && item.visibility === 'CLOSE_FRIENDS' && (
+        <PhotoPermissionIndicator
+          visibility={item.visibility}
+          size="small"
+          style={styles.permissionIndicator}
+        />
+      )}
     </TouchableOpacity>
   );
 
@@ -306,6 +316,12 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     height: width * 0.9,
     borderRadius: Radius.md,
+  },
+  // Permission Indicator Styles
+  permissionIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
 });
 

@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   // Toggle Button
   toggleButton: {
     position: 'absolute',
-    top: 60,
+    bottom: 60,
     right: Spacing.containerPadding,
     backgroundColor: Colors.overlayDark,
     width: 40,

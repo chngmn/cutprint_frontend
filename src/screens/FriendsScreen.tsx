@@ -32,6 +32,7 @@ interface Friend {
   name: string;
   profileImage: string | null; // 프로필 이미지 URL 추가
   status?: string; // 상태는 선택적으로 변경
+  isCloseFriend?: boolean; // 친한 친구 여부 추가
 }
 
 interface FriendRequest {
@@ -56,6 +57,7 @@ const FriendsScreen = () => {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResultUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [showCloseFriendsOnly, setShowCloseFriendsOnly] = useState<boolean>(false);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const searchInputRef = useRef<TextInput>(null);
   const [selectedRequestAction, setSelectedRequestAction] = useState<{ id: string; action: 'accept' | 'decline' } | null>(null);
@@ -272,6 +274,31 @@ const FriendsScreen = () => {
     });
   };
 
+  // 친한 친구 토글
+  const toggleCloseFriend = async (friend: Friend): Promise<void> => {
+    try {
+      const response = await apiService.toggleCloseFriend(friend.id);
+      const newIsCloseFriend = response.data.isCloseFriend;
+
+      // 친구 목록에서 해당 친구의 isCloseFriend 상태 업데이트
+      setFriends(prevFriends =>
+        prevFriends.map(f =>
+          f.id === friend.id ? { ...f, isCloseFriend: newIsCloseFriend } : f
+        )
+      );
+
+      // 선택된 친구도 업데이트
+      if (selectedFriend?.id === friend.id) {
+        setSelectedFriend(prev => prev ? { ...prev, isCloseFriend: newIsCloseFriend } : null);
+      }
+
+      Alert.alert('완료', newIsCloseFriend ? '친한 친구로 지정했습니다.' : '친한 친구 지정을 해제했습니다.');
+    } catch (error) {
+      console.error('친한 친구 토글 실패:', error);
+      Alert.alert('오류', '친한 친구 설정을 변경할 수 없습니다.');
+    }
+  };
+
   // 검색 결과 아이템 렌더링
   const renderSearchResultItem: ListRenderItem<SearchResultUser> = ({ item }) => (
     <View style={styles.listItem}>
@@ -385,7 +412,20 @@ const FriendsScreen = () => {
           <View style={styles.profileImage}>
             <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
           </View>}
-        <Text style={styles.listItemName}>{item.name}</Text>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={styles.listItemName}>{item.name}</Text>
+          {/* 친한 친구 표시 */}
+          {item.isCloseFriend && (
+            <TouchableOpacity
+              onPress={() => toggleCloseFriend(item)}
+              style={{ marginLeft: 8, padding: 2 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* 온라인 상태 점과 텍스트를 오른쪽에 예쁘게 표시 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 80, justifyContent: 'flex-end' }}>
           <View
@@ -434,212 +474,281 @@ const FriendsScreen = () => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.container}>
-      {/* <View style={styles.header}> */}
-      {/* <Text style={styles.title}>친구</Text> */}
-      {/* <TouchableOpacity style={styles.headerIcon}> */}
-      {/* <MaterialCommunityIcons name="cog-outline" size={24} color="#555" /> 설정 아이콘 추가 */}
-      {/* </TouchableOpacity> */}
-      {/* </View> */}
+        {/* <View style={styles.header}> */}
+        {/* <Text style={styles.title}>친구</Text> */}
+        {/* <TouchableOpacity style={styles.headerIcon}> */}
+        {/* <MaterialCommunityIcons name="cog-outline" size={24} color="#555" /> 설정 아이콘 추가 */}
+        {/* </TouchableOpacity> */}
+        {/* </View> */}
 
-      {/* 검색창 */}
-      <View style={styles.searchContainer}>
-        <MaterialCommunityIcons name="magnify" size={20} color="#888" style={styles.searchIcon} />
-        <TextInput
-          ref={searchInputRef}
-          style={styles.searchInput}
-          placeholder="Search" // 스크린샷처럼 영어로 변경
-          placeholderTextColor="#888"
-          value={searchQuery}
-          onChangeText={handleSearchInputChange} // 입력할 때마다 검색 실행
-        />
-      </View>
-
-      {/* 검색 결과 목록 (검색어가 있고 결과가 있을 때만 표시) */}
-      {searchQuery.trim() !== '' && searchResults.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>검색 결과</Text>
-          <FlatList<SearchResultUser>
-            data={searchResults}
-            renderItem={renderSearchResultItem}
-            keyExtractor={(item) => item.id}
-            style={styles.resultsList} // 스크롤 가능하도록 스타일 적용
-            nestedScrollEnabled // Android에서 중첩 스크롤 이슈 방지
-            ListEmptyComponent={() => <Text style={styles.emptyText}>검색 결과 없음</Text>}
+        {/* 검색창 */}
+        <View style={styles.searchContainer}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#888" style={styles.searchIcon} />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Search" // 스크린샷처럼 영어로 변경
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={handleSearchInputChange} // 입력할 때마다 검색 실행
           />
         </View>
-      )}
 
-      {/* 친구 요청 목록 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>친구 요청</Text>
-        {friendRequests.length > 0 ? (
-          <FlatList<FriendRequest>
-            data={friendRequests}
-            renderItem={renderFriendRequestItem}
-            keyExtractor={(item) => item.id}
-            style={styles.requestList} // 스크롤 가능하도록 스타일 적용
-            nestedScrollEnabled
-          />
-        ) : (
-          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 24 }}>
-            <MaterialCommunityIcons name="email-open-outline" size={48} color="#adb5bd" style={{ marginBottom: 12 }} />
-            <Text style={{ color: '#868e96', fontSize: 16, fontWeight: 'bold', marginBottom: 6 }}>
-              받은 친구 요청이 없어요
-            </Text>
-            <Text style={{ color: '#adb5bd', fontSize: 14, textAlign: 'center' }}>
-              친구가 당신에게 요청을 보내면 여기에 표시됩니다.
-            </Text>
+        {/* 검색 결과 목록 (검색어가 있고 결과가 있을 때만 표시) */}
+        {searchQuery.trim() !== '' && searchResults.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>검색 결과</Text>
+            <FlatList<SearchResultUser>
+              data={searchResults}
+              renderItem={renderSearchResultItem}
+              keyExtractor={(item) => item.id}
+              style={styles.resultsList} // 스크롤 가능하도록 스타일 적용
+              nestedScrollEnabled // Android에서 중첩 스크롤 이슈 방지
+              ListEmptyComponent={() => <Text style={styles.emptyText}>검색 결과 없음</Text>}
+            />
           </View>
         )}
-      </View>
 
-      {/* 내 친구 목록 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>내 친구</Text>
-        {friends.length === 0 ? (
-          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 40 }}>
-            <MaterialCommunityIcons name="account-multiple-outline" size={64} color="#adb5bd" style={{ marginBottom: 16 }} />
-            <Text style={{ color: '#868e96', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
-              아직 친구가 없어요
-            </Text>
-            <Text style={{ color: '#adb5bd', fontSize: 15, marginBottom: 18 }}>
-              친구를 추가하고 함께 추억을 만들어보세요!
-            </Text>
+        {/* 친구 요청 목록 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>친구 요청</Text>
+          {friendRequests.length > 0 ? (
+            <FlatList<FriendRequest>
+              data={friendRequests}
+              renderItem={renderFriendRequestItem}
+              keyExtractor={(item) => item.id}
+              style={styles.requestList} // 스크롤 가능하도록 스타일 적용
+              nestedScrollEnabled
+            />
+          ) : (
+            <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 24 }}>
+              <MaterialCommunityIcons name="email-open-outline" size={48} color="#adb5bd" style={{ marginBottom: 12 }} />
+              <Text style={{ color: '#868e96', fontSize: 16, fontWeight: 'bold', marginBottom: 6 }}>
+                받은 친구 요청이 없어요
+              </Text>
+              <Text style={{ color: '#adb5bd', fontSize: 14, textAlign: 'center' }}>
+                친구가 당신에게 요청을 보내면 여기에 표시됩니다.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* 내 친구 목록 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>내 친구</Text>
             <TouchableOpacity
-              style={{
-                backgroundColor: 'black',
-                borderRadius: 20,
-                paddingVertical: 10,
-                paddingHorizontal: 28,
-                marginTop: 8,
-                shadowColor: 'black',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-              onPress={() => {
-                searchInputRef.current?.focus();
-              }}
-              activeOpacity={0.85}
+              style={[
+                styles.filterButton,
+                showCloseFriendsOnly && styles.filterButtonActive
+              ]}
+              onPress={() => setShowCloseFriendsOnly(!showCloseFriendsOnly)}
+              activeOpacity={0.7}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
-                친구 찾기
+              <MaterialCommunityIcons
+                name="star"
+                size={16}
+                color={showCloseFriendsOnly ? '#333' : '#666'}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[
+                styles.filterButtonText,
+                showCloseFriendsOnly && styles.filterButtonTextActive
+              ]}>
+                친한 친구만
               </Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <FlatList
-            data={friends}
-            renderItem={renderFriendItem}
-            keyExtractor={(item) => item.id}
-            style={styles.friendList}
-            nestedScrollEnabled
-          />
-        )}
-      </View>
-
-      {/* Modal for friend info */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeFriendModal}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' }}>
-          <Animated.View
-            style={{
-              backgroundColor: '#fff',
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              alignItems: 'center',
-              transform: [
-                {
-                  translateY: modalAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [60, 0],
-                  }),
-                },
-              ],
-              opacity: modalAnim,
-            }}
-          >
-            {/* Close X button at top right */}
-            <TouchableOpacity
-              onPress={closeFriendModal}
-              style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 10 }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <MaterialCommunityIcons name="close" size={28} color="#888" />
-            </TouchableOpacity>
-            {selectedFriend && (
-              <>
-                {selectedFriend.profileImage ? (
-                  <Image source={{ uri: selectedFriend.profileImage }} style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12, marginTop: 12 }} />
-                ) : (
-                  <View style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 12 }}>
-                    <MaterialCommunityIcons name="account-circle" size={72} color="#bbb" />
+          {friends.length === 0 ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 40 }}>
+              <MaterialCommunityIcons name="account-multiple-outline" size={64} color="#adb5bd" style={{ marginBottom: 16 }} />
+              <Text style={{ color: '#868e96', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                아직 친구가 없어요
+              </Text>
+              <Text style={{ color: '#adb5bd', fontSize: 15, marginBottom: 18 }}>
+                친구를 추가하고 함께 추억을 만들어보세요!
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: 'black',
+                  borderRadius: 20,
+                  paddingVertical: 10,
+                  paddingHorizontal: 28,
+                  marginTop: 8,
+                  shadowColor: 'black',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+                onPress={() => {
+                  searchInputRef.current?.focus();
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+                  친구 찾기
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={showCloseFriendsOnly ? friends.filter(f => f.isCloseFriend) : friends}
+              renderItem={renderFriendItem}
+              keyExtractor={(item) => item.id}
+              style={styles.friendList}
+              nestedScrollEnabled
+              ListEmptyComponent={() =>
+                showCloseFriendsOnly ? (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 40 }}>
+                    <MaterialCommunityIcons name="star-outline" size={64} color="#adb5bd" style={{ marginBottom: 16 }} />
+                    <Text style={{ color: '#868e96', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                      친한 친구가 없어요
+                    </Text>
+                    <Text style={{ color: '#adb5bd', fontSize: 15, marginBottom: 18, textAlign: 'center' }}>
+                      친구를 별표로 표시하여 친한 친구로 지정해보세요!
+                    </Text>
                   </View>
-                )}
-                {/* 이름과 온라인 점, 텍스트를 가로로, 점과 텍스트는 오른쪽 */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, width: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222', marginRight: 10 }}>{selectedFriend.name}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 7,
-                        marginRight: 8,
-                        backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
-                        shadowColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: onlineStatuses[String(selectedFriend.id)] ? 0.6 : 0.18,
-                        shadowRadius: onlineStatuses[String(selectedFriend.id)] ? 6 : 3,
-                        elevation: onlineStatuses[String(selectedFriend.id)] ? 4 : 1,
-                      }}
-                    />
-                    <View
-                      style={{
-                        backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#e6fbe6' : '#f0f0f0',
-                        borderRadius: 12,
-                        paddingHorizontal: 10,
-                        paddingVertical: 2,
-                        minWidth: 48,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text
+                ) : null
+              }
+            />
+          )}
+        </View>
+
+        {/* Modal for friend info */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeFriendModal}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' }}>
+            <Animated.View
+              style={{
+                backgroundColor: '#fff',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 24,
+                alignItems: 'center',
+                transform: [
+                  {
+                    translateY: modalAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [60, 0],
+                    }),
+                  },
+                ],
+                opacity: modalAnim,
+              }}
+            >
+              {/* Close X button at top right */}
+              <TouchableOpacity
+                onPress={closeFriendModal}
+                style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 10 }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons name="close" size={28} color="#888" />
+              </TouchableOpacity>
+              {selectedFriend && (
+                <>
+                  {selectedFriend.profileImage ? (
+                    <Image source={{ uri: selectedFriend.profileImage }} style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12, marginTop: 12 }} />
+                  ) : (
+                    <View style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 12 }}>
+                      <MaterialCommunityIcons name="account-circle" size={72} color="#bbb" />
+                    </View>
+                  )}
+                  {/* 이름과 온라인 점, 텍스트를 가로로, 점과 텍스트는 오른쪽 */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, width: '100%', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222', marginRight: 10 }}>{selectedFriend.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View
                         style={{
-                          color: onlineStatuses[String(selectedFriend.id)] ? '#27ae60' : '#888',
-                          fontSize: 12,
-                          fontWeight: '600',
-                          letterSpacing: 0.5,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 7,
+                          marginRight: 8,
+                          backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
+                          shadowColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
+                          shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: onlineStatuses[String(selectedFriend.id)] ? 0.6 : 0.18,
+                          shadowRadius: onlineStatuses[String(selectedFriend.id)] ? 6 : 3,
+                          elevation: onlineStatuses[String(selectedFriend.id)] ? 4 : 1,
+                        }}
+                      />
+                      <View
+                        style={{
+                          backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#e6fbe6' : '#f0f0f0',
+                          borderRadius: 12,
+                          paddingHorizontal: 10,
+                          paddingVertical: 2,
+                          minWidth: 48,
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        {onlineStatuses[String(selectedFriend.id)] ? '온라인' : '오프라인'}
-                      </Text>
+                        <Text
+                          style={{
+                            color: onlineStatuses[String(selectedFriend.id)] ? '#27ae60' : '#888',
+                            fontSize: 12,
+                            fontWeight: '600',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {onlineStatuses[String(selectedFriend.id)] ? '온라인' : '오프라인'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-                {/* 상태 등 추가 가능 */}
-                <TouchableOpacity
-                  style={{ backgroundColor: 'black', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 32, marginTop: 18, marginBottom: 20 }}
-                  onPress={() => {
-                    closeFriendModal();
-                    navigation.navigate('FriendAlbum', { friendId: parseInt(selectedFriend.id), friendName: selectedFriend.name });
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>앨범 보기</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </Animated.View>
-        </View>
-      </Modal>
+
+                  {/* 친한 친구 토글 버튼 */}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: selectedFriend.isCloseFriend ? '#FFD700' : '#f0f0f0',
+                      borderRadius: 20,
+                      paddingVertical: 10,
+                      paddingHorizontal: 24,
+                      marginTop: 12,
+                      marginBottom: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={() => toggleCloseFriend(selectedFriend)}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialCommunityIcons
+                      name={selectedFriend.isCloseFriend ? "star" : "star-outline"}
+                      size={18}
+                      color={selectedFriend.isCloseFriend ? '#333' : '#666'}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={{
+                        color: selectedFriend.isCloseFriend ? '#333' : '#666',
+                        fontWeight: 'bold',
+                        fontSize: 14
+                      }}
+                    >
+                      {selectedFriend.isCloseFriend ? '친한 친구' : '친한 친구 지정'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ backgroundColor: 'black', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 32, marginTop: 8, marginBottom: 20 }}
+                    onPress={() => {
+                      closeFriendModal();
+                      navigation.navigate('FriendAlbum', { friendId: parseInt(selectedFriend.id), friendName: selectedFriend.name });
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>앨범 보기</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </Animated.View>
+          </View>
+        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -689,12 +798,37 @@ const styles = StyleSheet.create({
     marginBottom: 25, // 각 섹션 하단 마진
     minHeight: 170,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 15, // 제목과 목록 사이 간격
     fontFamily: 'Pretendard',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  filterButtonActive: {
+    backgroundColor: '#FFD700',
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    fontFamily: 'Pretendard',
+  },
+  filterButtonTextActive: {
+    color: '#333',
   },
   listItem: {
     flexDirection: 'row',
@@ -711,7 +845,6 @@ const styles = StyleSheet.create({
     // backgroundColor: '#e0e0e0', // 이미지가 없을 경우 대비 배경색
   },
   listItemName: {
-    flex: 1, // 이름이 남은 공간을 차지하도록
     fontSize: 16,
     color: '#333',
     fontFamily: 'Pretendard',
