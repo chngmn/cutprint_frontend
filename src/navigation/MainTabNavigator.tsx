@@ -1,3 +1,4 @@
+//src/navigation/MainTabNavigator.tsx
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -110,7 +111,7 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
           borderBottomWidth: 0,
         },
         headerTitleStyle: {
-          fontSize: 25,
+          fontSize: 20,
           fontWeight: 'bold',
         },
         headerRight: () => (
@@ -128,12 +129,12 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
       <Tab.Screen
         name="Friends"
         component={FriendsScreen}
-        options={{ title: 'Friends' }}
+        options={{ title: 'Cutprint' }}
       />
       <Tab.Screen
         name="Album"
         component={AlbumScreen}
-        options={{ title: 'My Photos' }}
+        options={{ title: 'Cutprint' }}
       />
     </Tab.Navigator>
   );

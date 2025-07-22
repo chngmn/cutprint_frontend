@@ -6,6 +6,8 @@ import {
   Image,
   ImageBackground,
   Animated,
+  ScrollView,
+  Text,
 } from 'react-native';
 import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
@@ -77,11 +79,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 알림 목록 표시 */}
-      <View style={{ marginTop: 20, marginBottom: 10 }}>
-        <CustomText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>알림</CustomText>
-        <NotificationList notifications={notifications} onRead={handleRead} />
-      </View>
+      {/* 알림 영역은 아래로 이동 */}
       {/* 기존 홈 화면 내용 */}
       <View style={styles.header}>
         <Image
@@ -109,6 +107,55 @@ const HomeScreen = () => {
            </Animated.View>
         </TouchableOpacity>
         <CustomText style={styles.guideText}>네컷 사진 찍기</CustomText>
+      </View>
+
+      {/* 알림 리스트 (스크롤, 넓은 영역) */}
+      <View style={{ paddingHorizontal: 16, marginTop: 18 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Ionicons name="notifications-outline" size={20} color="#111" style={{ marginRight: 7 }} />
+          <CustomText style={{ fontSize: 15, fontWeight: 'bold', color: '#111' }}>알림</CustomText>
+        </View>
+        <View style={{ maxHeight: 220, minHeight: 120 }}>
+          {notifications.length === 0 ? (
+            <>
+              {[{
+                id: 'default1',
+                message: '사진을 찍으면 여기에서 결과를 확인할 수 있어요!',
+                created_at: '',
+                is_read: true,
+              }, {
+                id: 'default2',
+                message: '친구와 함께 찍은 사진, 새로운 소식이 도착하면 알려드릴게요!',
+                created_at: '',
+                is_read: true,
+              }].map(n => (
+                <View key={n.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fafbfc', borderRadius: 10, borderWidth: 1, borderColor: '#eee', shadowColor: '#111', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 9 }}>
+                  <Ionicons name="information-circle-outline" size={18} color="#bbb" style={{ marginRight: 10, alignSelf: 'flex-start', marginTop: 4 }} />
+                  <View style={{ flex: 1 }}>
+                    <CustomText style={{ color: '#888', fontSize: 13, fontWeight: 'bold', marginBottom: 1 }}>{n.message}</CustomText>
+                  </View>
+                </View>
+              ))}
+            </>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 0 }}>
+              {notifications.map(n => (
+                <View key={n.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#eee', shadowColor: '#111', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 9 }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: n.is_read ? '#ccc' : '#111', marginRight: 12, alignSelf: 'flex-start', marginTop: 5 }} />
+                  <View style={{ flex: 1 }}>
+                    <CustomText style={{ color: '#222', fontSize: 14, fontWeight: 'bold', marginBottom: 2 }}>{n.message}</CustomText>
+                    <CustomText style={{ color: '#888', fontSize: 12 }}>{n.created_at}</CustomText>
+                  </View>
+                  {!n.is_read && (
+                    <TouchableOpacity onPress={() => handleRead(n.id)} style={{ borderWidth: 1, borderColor: '#111', borderRadius: 10, paddingVertical: 3, paddingHorizontal: 10, marginLeft: 10, alignSelf: 'center' }}>
+                      <CustomText style={{ color: '#111', fontSize: 12, fontWeight: 'bold' }}>읽음</CustomText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
       </View>
     </View>
   );
