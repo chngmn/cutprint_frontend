@@ -126,6 +126,11 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // 사용자 온라인 상태 확인
+  async isUserOnline(userId: number): Promise<{ online: boolean; reason?: string }> {
+    return this.makeRequest(`/auth/online/${userId}`);
+  }
 }
 
 export const apiService = new ApiService();

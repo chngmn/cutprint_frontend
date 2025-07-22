@@ -60,17 +60,37 @@ const FriendsScreen = () => {
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const modalAnim = useRef(new Animated.Value(0)).current;
+  const [onlineStatuses, setOnlineStatuses] = useState<{ [userId: string]: boolean }>({});
 
   // type RootStackParamList = {
   //   Album: { userId: number; userName: string };
   //   // ...다른 스크린
   // };
 
+  // 친구들의 온라인 상태를 모두 불러오는 함수
+  const fetchAllFriendsOnlineStatus = async (friendsList: Friend[]) => {
+    const statusObj: { [userId: string]: boolean } = {};
+    await Promise.all(
+      friendsList.map(async (friend) => {
+        try {
+          const res = await apiService.isUserOnline(Number(friend.id));
+          statusObj[String(friend.id)] = !!res.online;
+        } catch (error) {
+          statusObj[String(friend.id)] = false;
+          console.log('error', error);
+        }
+      })
+    );
+    setOnlineStatuses(statusObj);
+  };
+
   // 데이터 로드 함수들
   const loadFriends = async (): Promise<void> => {
     try {
       const friendsData = await apiService.getFriends();
       setFriends(friendsData);
+      fetchAllFriendsOnlineStatus(friendsData);
+      // console.log('onlineStatuses', onlineStatuses);
     } catch (error) {
       console.error('친구 목록 로드 실패:', error);
       Alert.alert('오류', '친구 목록을 불러올 수 없습니다.');
@@ -349,22 +369,62 @@ const FriendsScreen = () => {
   );
 
   // 내 친구 아이템 렌더링
-  const renderFriendItem: ListRenderItem<Friend> = ({ item }) => (
-    <TouchableOpacity
-      style={styles.listItem}
-      onPress={() => openFriendModal(item)}
-    >
-      {item.profileImage ? (
-        <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
-      ) :
-        <View style={styles.profileImage}>
-          <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
-        </View>}
-
-      <Text style={styles.listItemName}>{item.name}</Text>
-      {item.status && <Text style={styles.statusText}>{item.status}</Text>}
-    </TouchableOpacity>
-  );
+  const renderFriendItem: ListRenderItem<Friend> = ({ item }) => {
+    const isOnline = onlineStatuses[String(item.id)];
+    return (
+      <TouchableOpacity
+        style={styles.listItem}
+        onPress={() => openFriendModal(item)}
+      >
+        {item.profileImage ? (
+          <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
+        ) :
+          <View style={styles.profileImage}>
+            <MaterialCommunityIcons name="account-circle" size={40} color="#bbb" />
+          </View>}
+        <Text style={styles.listItemName}>{item.name}</Text>
+        {/* 온라인 상태 점과 텍스트를 오른쪽에 예쁘게 표시 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 80, justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: 7,
+              marginRight: 8,
+              backgroundColor: isOnline ? '#4cd137' : '#bbb',
+              shadowColor: isOnline ? '#4cd137' : '#bbb',
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: isOnline ? 0.6 : 0.18,
+              shadowRadius: isOnline ? 6 : 3,
+              elevation: isOnline ? 4 : 1,
+            }}
+          />
+          <View
+            style={{
+              backgroundColor: isOnline ? '#e6fbe6' : '#f0f0f0',
+              borderRadius: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 2,
+              minWidth: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: isOnline ? '#27ae60' : '#888',
+                fontSize: 12,
+                fontWeight: '600',
+                letterSpacing: 0.5,
+              }}
+            >
+              {isOnline ? '온라인' : '오프라인'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -518,7 +578,48 @@ const FriendsScreen = () => {
                     <MaterialCommunityIcons name="account-circle" size={72} color="#bbb" />
                   </View>
                 )}
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 4 }}>{selectedFriend.name}</Text>
+                {/* 이름과 온라인 점, 텍스트를 가로로, 점과 텍스트는 오른쪽 */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, width: '100%', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222', marginRight: 10 }}>{selectedFriend.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 7,
+                        marginRight: 8,
+                        backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
+                        shadowColor: onlineStatuses[String(selectedFriend.id)] ? '#4cd137' : '#bbb',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: onlineStatuses[String(selectedFriend.id)] ? 0.6 : 0.18,
+                        shadowRadius: onlineStatuses[String(selectedFriend.id)] ? 6 : 3,
+                        elevation: onlineStatuses[String(selectedFriend.id)] ? 4 : 1,
+                      }}
+                    />
+                    <View
+                      style={{
+                        backgroundColor: onlineStatuses[String(selectedFriend.id)] ? '#e6fbe6' : '#f0f0f0',
+                        borderRadius: 12,
+                        paddingHorizontal: 10,
+                        paddingVertical: 2,
+                        minWidth: 48,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: onlineStatuses[String(selectedFriend.id)] ? '#27ae60' : '#888',
+                          fontSize: 12,
+                          fontWeight: '600',
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {onlineStatuses[String(selectedFriend.id)] ? '온라인' : '오프라인'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
                 {/* 상태 등 추가 가능 */}
                 <TouchableOpacity
                   style={{ backgroundColor: 'black', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 32, marginTop: 18, marginBottom: 20 }}
