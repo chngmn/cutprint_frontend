@@ -28,10 +28,10 @@ import PhotoPermissionSelector, { PhotoVisibility } from '../components/PhotoPer
 import PhotoPermissionIndicator from '../components/PhotoPermissionIndicator';
 
 type FrameType = '1x4' | '2x2' | '3x2' | 'Vertical 4-cut' | '4-cut grid' | '6-cut grid';
-interface Photo { 
-  id: string; 
-  url: string; 
-  frameType: FrameType; 
+interface Photo {
+  id: number;
+  url: string;
+  frameType: FrameType;
   visibility?: PhotoVisibility;
 }
 
@@ -110,7 +110,7 @@ export default function AlbumScreen() {
           onPress: async () => {
             try {
               setLoading('deleting');
-              await apiService.deletePhoto(parseInt(photo.id));
+              await apiService.deletePhoto(photo.id);
               await fetchPhotos(); // 목록 새로고침
               Alert.alert('성공', '사진이 삭제되었습니다.');
             } catch (error) {
@@ -218,15 +218,15 @@ export default function AlbumScreen() {
 
   const handlePermissionChange = async (newVisibility: PhotoVisibility) => {
     if (!selectedPhotoForPermission) return;
-    
+
     try {
       setLoading('updating-permission');
-      
+
       await apiService.updatePhotoVisibility(
-        parseInt(selectedPhotoForPermission.id), 
+        selectedPhotoForPermission.id,
         newVisibility
       );
-      
+
       // Update local state
       setAppPhotos(prevPhotos =>
         prevPhotos.map(photo =>
@@ -235,7 +235,7 @@ export default function AlbumScreen() {
             : photo
         )
       );
-      
+
       Alert.alert('완료', '사진 공개 설정이 변경되었습니다.');
     } catch (error) {
       console.error('Error updating photo permission:', error);
@@ -309,7 +309,7 @@ export default function AlbumScreen() {
         <FlatList
           data={appPhotos}
           renderItem={PhotoItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           numColumns={numColumns}
           contentContainerStyle={styles.photoGrid}
           showsVerticalScrollIndicator={false}
@@ -334,7 +334,7 @@ export default function AlbumScreen() {
       )}
 
       {/* 전체화면 모달 */}
-      {selectedPhoto && !showActionMenu && (
+      {selectedPhoto && !showActionMenu && !showPermissionSelector && (
         <Modal
           visible={true}
           transparent={true}

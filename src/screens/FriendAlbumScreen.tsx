@@ -24,7 +24,7 @@ import PhotoPermissionIndicator, { PhotoVisibility } from '../components/PhotoPe
 type FriendAlbumScreenRouteProp = RouteProp<RootStackParamList, 'FriendAlbum'>;
 
 interface Photo { 
-  id: string; 
+  id: number; 
   url: string;
   visibility?: PhotoVisibility;
 }
