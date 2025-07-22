@@ -9,11 +9,11 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import CustomText from './CustomText';
-import { 
-  FrameStyle, 
-  frameCategories, 
-  getFramesByCategory, 
-  getFrameById 
+import {
+  FrameStyle,
+  frameCategories,
+  getFramesByCategory,
+  getFrameById
 } from '../utils/frameStyles';
 
 interface FrameSelectorProps {
@@ -199,7 +199,7 @@ const FrameSelector: React.FC<FrameSelectorProps> = ({
 
   const renderFrameItem = ({ item }: { item: FrameStyle }) => {
     const isSelected = selectedFrameId === item.id;
-    
+
     return (
       <TouchableOpacity
         style={[
@@ -211,7 +211,7 @@ const FrameSelector: React.FC<FrameSelectorProps> = ({
         <View style={styles.framePreview}>
           {renderFramePreview(item, isSelected)}
         </View>
-        
+
         <CustomText
           style={[
             styles.frameName,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   framePreviewSelected: {
-    borderWidth: 3,
+    borderWidth: 0,
     borderColor: '#4867B7',
   },
   frameInner: {
