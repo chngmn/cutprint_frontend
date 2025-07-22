@@ -21,7 +21,7 @@ const PhotoPermissionIndicator: React.FC<PhotoPermissionIndicatorProps> = ({
         return {
           icon: 'lock',
           color: '#666',
-          backgroundColor: 'rgba(102, 102, 102, 0.9)',
+          backgroundColor: 'rgba(220, 220, 220, 0.9)',
         };
       case 'CLOSE_FRIENDS':
         return {
