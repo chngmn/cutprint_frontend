@@ -8,6 +8,8 @@ import {
   ScrollView,
   Animated,
   TextInput,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -64,9 +66,13 @@ const FilterFrameScreen = () => {
   const [activeSection, setActiveSection] = useState<ActiveSection>(null);
   const [beforeAfterMode, setBeforeAfterMode] = useState(false);
   const [labelText, setLabelText] = useState('cutprint');
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Animated value for the height of the editing panel
   const animatedPanelHeight = useRef(new Animated.Value(0)).current;
+  const floatingToolbarY = useRef(new Animated.Value(0)).current;
+  const labelInputRef = useRef<TextInput>(null);
 
   const requiredCount = getRequiredPhotoCount(cutType);
   const slots = Array.from({ length: requiredCount });
@@ -77,6 +83,39 @@ const FilterFrameScreen = () => {
   const currentFrame = getFrameById(selectedFrame);
 
   // Effect to animate the panel height based on activeSection
+  // Keyboard and editing panel effects
+  useEffect(() => {
+    const keyboardWillShow = (event: any) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      // Position floating toolbar above keyboard
+      Animated.timing(floatingToolbarY, {
+        toValue: -event.endCoordinates.height - 60,
+        duration: event.duration || 250,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const keyboardWillHide = (event: any) => {
+      setKeyboardHeight(0);
+      Animated.timing(floatingToolbarY, {
+        toValue: 0,
+        duration: event.duration || 250,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const keyboardHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(keyboardShowEvent, keyboardWillShow);
+    const hideListener = Keyboard.addListener(keyboardHideEvent, keyboardWillHide);
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, [floatingToolbarY]);
+
   useEffect(() => {
     if (activeSection) {
       // Animate to a specific height when a section is active
@@ -260,9 +299,17 @@ const FilterFrameScreen = () => {
           >
             <MaterialCommunityIcons
               name="compare"
-              size={20}
+              size={16}
               color={beforeAfterMode ? Colors.white : Colors.textPrimary}
             />
+            <CustomText
+              style={[
+                styles.beforeAfterButtonText,
+                beforeAfterMode && styles.beforeAfterButtonTextActive,
+              ]}
+            >
+              전후비교
+            </CustomText>
           </TouchableOpacity>
         </View>
       </View>
@@ -304,7 +351,14 @@ const FilterFrameScreen = () => {
                   {slots.map((_, index) => renderPhotoSlot(index))}
                 </View>
               )}
-              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
+              <TouchableOpacity 
+                style={[styles.cutprintLabel, getCutprintLabelStyle(), isEditingLabel && styles.cutprintLabelEditing]}
+                onPress={() => {
+                  setIsEditingLabel(true);
+                  setTimeout(() => labelInputRef.current?.focus(), 100);
+                }}
+                activeOpacity={0.7}
+              >
                 <CustomText
                   style={[
                     styles.cutprintText,
@@ -313,26 +367,65 @@ const FilterFrameScreen = () => {
                         currentFrame?.style.borderColor || '#000000'
                       ),
                     },
+                    isEditingLabel && styles.cutprintTextEditing,
                   ]}
                 >
-                  {labelText}
+                  {labelText || '문구 입력'}
                 </CustomText>
-              </View>
+                {isEditingLabel && (
+                  <MaterialCommunityIcons 
+                    name="pencil" 
+                    size={12} 
+                    color={getContrastTextColor(currentFrame?.style.borderColor || '#000000')}
+                    style={{ marginLeft: 4 }}
+                  />
+                )}
+              </TouchableOpacity>
             </View>
           </ViewShot>
-          {/* User Input for Label */}
-          <View style={styles.labelInputContainer}>
-            <TextInput
-              value={labelText}
-              onChangeText={setLabelText}
-              style={styles.labelInput}
-              maxLength={12}
-              placeholder="라벨 입력"
-              placeholderTextColor={Colors.textTertiary}
-            />
-          </View>
         </View>
       </ScrollView>
+
+      {/* Floating Toolbar for Text Editing */}
+      {isEditingLabel && (
+        <Animated.View 
+          style={[
+            styles.floatingToolbar,
+            {
+              transform: [{ translateY: floatingToolbarY }],
+            },
+          ]}
+        >
+          <View style={styles.floatingToolbarContent}>
+            <TextInput
+              ref={labelInputRef}
+              value={labelText}
+              onChangeText={setLabelText}
+              style={styles.floatingLabelInput}
+              maxLength={12}
+              placeholder="문구 입력"
+              placeholderTextColor={Colors.textTertiary}
+              autoFocus
+              selectTextOnFocus
+              onBlur={() => setIsEditingLabel(false)}
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                setIsEditingLabel(false);
+                Keyboard.dismiss();
+              }}
+            />
+            <TouchableOpacity
+              style={styles.floatingToolbarButton}
+              onPress={() => {
+                setIsEditingLabel(false);
+                Keyboard.dismiss();
+              }}
+            >
+              <MaterialCommunityIcons name="check" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Editing Mode Tabs and Sliding Section */}
       <View>
@@ -370,6 +463,8 @@ const FilterFrameScreen = () => {
             // setEditingValues({}); // Removed as PhotoEditingTools is removed
             setBeforeAfterMode(false);
             setActiveSection(null); // Close the editing panel on reset
+            setLabelText('cutprint'); // Reset label text
+            setIsEditingLabel(false); // Exit editing mode
           }}
         >
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
@@ -379,9 +474,22 @@ const FilterFrameScreen = () => {
         <TouchableOpacity
           style={styles.nextButton}
           onPress={async () => {
-            if (viewShotRef.current?.capture) {
-              const uri = await viewShotRef.current.capture();
-              navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
+            // Ensure we're not in editing mode before capturing
+            if (isEditingLabel) {
+              setIsEditingLabel(false);
+              Keyboard.dismiss();
+              // Small delay to ensure UI updates
+              setTimeout(async () => {
+                if (viewShotRef.current?.capture) {
+                  const uri = await viewShotRef.current.capture();
+                  navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
+                }
+              }, 200);
+            } else {
+              if (viewShotRef.current?.capture) {
+                const uri = await viewShotRef.current.capture();
+                navigation.navigate('PreviewAndSave', { imageUri: uri, cutType: cutType });
+              }
             }
           }}
         >
@@ -440,19 +548,31 @@ const styles = StyleSheet.create({
   },
   // Header Before/After Button (New Position)
   headerBeforeAfterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray100,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.gray100,
     borderWidth: 1,
     borderColor: Colors.gray200,
+    minWidth: 70,
+    justifyContent: 'center',
   },
   headerBeforeAfterButtonActive: {
     backgroundColor: Colors.textPrimary,
     borderColor: Colors.textPrimary,
     ...Shadow.small,
+  },
+  beforeAfterButtonText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    marginLeft: Spacing.xs / 2,
+  },
+  beforeAfterButtonTextActive: {
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
   },
   previewSection: {
     justifyContent: 'center',
@@ -547,11 +667,20 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+  },
+  cutprintLabelEditing: {
+    borderWidth: 2,
+    borderColor: Colors.primary || Colors.textPrimary,
+    backgroundColor: 'rgba(0,0,0,0.8)',
   },
   cutprintText: {
     color: Colors.white,
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.bold,
+  },
+  cutprintTextEditing: {
+    opacity: 0.9,
   },
   // Filter/Frame Tab Section (Brand Aligned & Minimal)
   modeTabContainer: {
@@ -570,7 +699,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.full,
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.gray200,
@@ -644,25 +773,42 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     letterSpacing: 0.3,
   },
-  // Label Input Section
-  labelInputContainer: {
-    alignItems: 'center',
-    marginVertical: Spacing.md,
+  // Floating Toolbar Styles
+  floatingToolbar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 80,
+    left: Spacing.containerPadding,
+    right: Spacing.containerPadding,
+    zIndex: 1000,
   },
-  labelInput: {
-    borderWidth: 2,
-    borderColor: Colors.gray200,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
-    width: 140,
-    textAlign: 'center',
-    fontSize: Typography.fontSize.sm,
+  floatingToolbarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Shadow.large,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  floatingLabelInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
     fontWeight: Typography.fontWeight.medium,
-    letterSpacing: 0.3,
-    ...Shadow.small,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    textAlign: 'center',
+  },
+  floatingToolbarButton: {
+    backgroundColor: Colors.primary || Colors.textPrimary,
+    borderRadius: Radius.full,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
   },
 });
 
