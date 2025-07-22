@@ -120,7 +120,7 @@ const HomeScreen = () => {
             <>
               {[{
                 id: 'default1',
-                message: '사진을 찍으면 여기에서 결과를 확인할 수 있어요!',
+                message: '이곳에서 알림을 확인할 수 있어요!',
                 created_at: '',
                 is_read: true,
               }, {
