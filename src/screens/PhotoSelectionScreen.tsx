@@ -81,13 +81,13 @@ const FramePreview = ({
   const getCutprintLabelStyle = () => {
     switch (cutType) {
       case 'Vertical 4-cut':
-        return { width: 70 };
+        return { width: 84 };
       case '4-cut grid':
-        return { width: 140 };
+        return { width: 168 };
       case '6-cut grid':
-        return { width: 140 };
+        return { width: 168 };
       default:
-        return { width: 70 };
+        return { width: 84 };
     }
   };
 
@@ -342,7 +342,9 @@ const styles = StyleSheet.create({
     ...Shadow.small,
   },
   bottomContainer: {
-    padding: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     backgroundColor: Colors.white,
   },
@@ -352,18 +354,18 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   frameVertical: {
-    width: 70,
-    height: 240,
+    width: 84,
+    height: 288,
   },
   frameGrid4: {
-    width: 140,
-    height: 210,
+    width: 168,
+    height: 252,
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   frameGrid6: {
-    width: 140,
-    height: 210,
+    width: 168,
+    height: 252,
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
@@ -429,8 +431,7 @@ const styles = StyleSheet.create({
   },
   cutprintLabel: {
     backgroundColor: Colors.black,
-    height: 28,
-    width: 140,
+    height: 34,
     marginTop: 0,
     marginBottom: Spacing.lg,
     justifyContent: 'center',
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
   },
   cutprintText: {
     color: Colors.white,
-    fontSize: Typography.fontSize.xs,
+    fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
     letterSpacing: 1,
   },
