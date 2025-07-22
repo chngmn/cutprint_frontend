@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,15 @@ import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import NotificationList from '../components/NotificationList';
+import { apiService } from '../services/apiService';
+
+interface Notification {
+  id: number;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+}
 
 type RootStackParamList = {
   CutSelection: undefined;
@@ -18,9 +27,35 @@ type RootStackParamList = {
 
 const HomeScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const fetchNotifications = () => {
+    apiService.getNotifications()
+      .then(setNotifications)
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const handleRead = async (notificationId: number) => {
+    try {
+      await apiService.markNotificationAsRead(notificationId);
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <View style={styles.container}>
+      {/* 알림 목록 표시 */}
+      <View style={{ marginTop: 20, marginBottom: 10 }}>
+        <CustomText style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>알림</CustomText>
+        <NotificationList notifications={notifications} onRead={handleRead} />
+      </View>
+      {/* 기존 홈 화면 내용 */}
       <View style={styles.header}>
         <Image
           source={require('../../assets/logo.png')}

@@ -131,6 +131,18 @@ class ApiService {
   async isUserOnline(userId: number): Promise<{ online: boolean; reason?: string }> {
     return this.makeRequest(`/auth/online/${userId}`);
   }
+
+  // 알림 목록 조회
+  async getNotifications(): Promise<any[]> {
+    return this.makeRequest('/notifications');
+  }
+
+  // 알림 읽음 처리
+  async markNotificationAsRead(notificationId: number): Promise<any> {
+    return this.makeRequest(`/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    });
+  }
 }
 
 export const apiService = new ApiService();
