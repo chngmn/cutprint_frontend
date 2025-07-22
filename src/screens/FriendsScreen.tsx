@@ -14,10 +14,11 @@ import {
   Easing, // Easing 추가
   Keyboard,
   TouchableWithoutFeedback,
+  RefreshControl, // pull-to-refresh
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/apiService';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
@@ -65,6 +66,7 @@ const FriendsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const [onlineStatuses, setOnlineStatuses] = useState<{ [userId: string]: boolean }>({});
+  const [refreshing, setRefreshing] = useState(false);
 
   // type RootStackParamList = {
   //   Album: { userId: number; userName: string };
@@ -112,11 +114,19 @@ const FriendsScreen = () => {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadFriends(), loadFriendRequests()]);
+    setRefreshing(false);
+  };
+
   // 컴포넌트 마운트 시 데이터 로드
-  useEffect(() => {
-    loadFriends();
-    loadFriendRequests();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFriends();
+      loadFriendRequests();
+    }, [])
+  );
 
   // 검색어를 입력할 때마다 검색 결과를 업데이트
   const handleSearchInputChange = async (text: string): Promise<void> => {
@@ -503,7 +513,7 @@ const FriendsScreen = () => {
               renderItem={renderSearchResultItem}
               keyExtractor={(item) => item.id}
               style={styles.resultsList} // 스크롤 가능하도록 스타일 적용
-              nestedScrollEnabled // Android에서 중첩 스크롤 이슈 방지
+              // nestedScrollEnabled // Android에서 중첩 스크롤 이슈 방지
               ListEmptyComponent={() => <Text style={styles.emptyText}>검색 결과 없음</Text>}
             />
           </View>
@@ -598,6 +608,9 @@ const FriendsScreen = () => {
               keyExtractor={(item) => item.id}
               style={styles.friendList}
               nestedScrollEnabled
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
               ListEmptyComponent={() =>
                 showCloseFriendsOnly ? (
                   <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 40 }}>
