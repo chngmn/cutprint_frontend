@@ -50,7 +50,6 @@ const PhotoPermissionSelector: React.FC<PhotoPermissionSelectorProps> = ({
 
   const handleSelect = (visibility: PhotoVisibility) => {
     onSelect(visibility);
-    onClose();
   };
 
   return (
