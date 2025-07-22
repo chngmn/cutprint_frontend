@@ -20,6 +20,7 @@ const config: ExpoConfig = {
     bundleIdentifier: 'com.madcampcs.cutprint',
   },
   android: {
+    package: 'com.madcampcs.cutprint',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
@@ -45,6 +46,9 @@ const config: ExpoConfig = {
       iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
     //   androidClientId: "YOUR_ANDROID_CLIENT_ID_HERE.apps.googleusercontent.com",
       webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+    },
+    eas: {
+      projectId: "80594ed6-ca35-40b0-b97a-dbe089ef29f6" // 여기에 당신의 프로젝트 ID를 붙여넣으세요
     },
   },
 };
