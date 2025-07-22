@@ -102,6 +102,20 @@ class ApiService {
     return response;
   }
 
+  // 친한 친구 토글
+  async toggleCloseFriend(friendId: string): Promise<any> {
+    const response = await this.makeRequest(`/friendship/close-friend/${friendId}`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  // 친한 친구 목록 조회
+  async getCloseFriends(): Promise<any[]> {
+    const response = await this.makeRequest('/friendship/close-friends');
+    return response.data;
+  }
+
   // 사진 업로드 (base64)
   async uploadPhoto(base64Image: string, friendIds?: number[]): Promise<any> {
     return this.makeRequest('/photos/upload-base64', {
