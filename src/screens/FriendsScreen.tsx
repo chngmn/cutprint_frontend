@@ -8,7 +8,10 @@ import {
   FlatList,
   Alert,
   ListRenderItem,
-  Image // 프로필 이미지 추가를 위해 import
+  Image, // 프로필 이미지 추가를 위해 import
+  Modal, // Modal 추가
+  Animated, // Animated API 추가
+  Easing, // Easing 추가
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/apiService';
@@ -54,6 +57,9 @@ const FriendsScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const searchInputRef = useRef<TextInput>(null);
   const [selectedRequestAction, setSelectedRequestAction] = useState<{ id: string; action: 'accept' | 'decline' } | null>(null);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const modalAnim = useRef(new Animated.Value(0)).current;
 
   // type RootStackParamList = {
   //   Album: { userId: number; userName: string };
@@ -220,6 +226,29 @@ const FriendsScreen = () => {
     );
   };
 
+  const openFriendModal = (friend: Friend) => {
+    setSelectedFriend(friend);
+    setModalVisible(true);
+    Animated.timing(modalAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.ease),
+    }).start();
+  };
+
+  const closeFriendModal = () => {
+    Animated.timing(modalAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+      easing: Easing.in(Easing.ease),
+    }).start(() => {
+      setModalVisible(false);
+      setTimeout(() => setSelectedFriend(null), 300);
+    });
+  };
+
   // 검색 결과 아이템 렌더링
   const renderSearchResultItem: ListRenderItem<SearchResultUser> = ({ item }) => (
     <View style={styles.listItem}>
@@ -323,7 +352,7 @@ const FriendsScreen = () => {
   const renderFriendItem: ListRenderItem<Friend> = ({ item }) => (
     <TouchableOpacity
       style={styles.listItem}
-      onPress={() => navigation.navigate('FriendAlbum', { friendId: parseInt(item.id), friendName: item.name })}
+      onPress={() => openFriendModal(item)}
     >
       {item.profileImage ? (
         <Image source={{ uri: item.profileImage }} style={styles.profileImage} />
@@ -388,7 +417,15 @@ const FriendsScreen = () => {
             nestedScrollEnabled
           />
         ) : (
-          <Text style={styles.emptyText}>받은 요청 없음</Text>
+          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, marginTop: 24 }}>
+            <MaterialCommunityIcons name="email-open-outline" size={48} color="#adb5bd" style={{ marginBottom: 12 }} />
+            <Text style={{ color: '#868e96', fontSize: 16, fontWeight: 'bold', marginBottom: 6 }}>
+              받은 친구 요청이 없어요
+            </Text>
+            <Text style={{ color: '#adb5bd', fontSize: 14, textAlign: 'center' }}>
+              친구가 당신에게 요청을 보내면 여기에 표시됩니다.
+            </Text>
+          </View>
         )}
       </View>
 
@@ -428,25 +465,76 @@ const FriendsScreen = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={{ flex: 1 }}>
-            {/* {friends.length > 0 && friends.length <= 2 && (
-              <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 6 }}>
-                <MaterialCommunityIcons name="account-plus-outline" size={24} color="#74c0fc" style={{ marginBottom: 2 }} />
-                <Text style={{ color: '#74c0fc', fontSize: 13, fontWeight: '500' }}>
-                  친구를 더 추가해보세요!
-                </Text>
-              </View>
-            )} */}
-            <FlatList
-              data={friends}
-              renderItem={renderFriendItem}
-              keyExtractor={(item) => item.id}
-              style={styles.friendList}
-              nestedScrollEnabled
-            />
-          </View>
+          <FlatList
+            data={friends}
+            renderItem={renderFriendItem}
+            keyExtractor={(item) => item.id}
+            style={styles.friendList}
+            nestedScrollEnabled
+          />
         )}
       </View>
+
+      {/* Modal for friend info */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeFriendModal}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' }}>
+          <Animated.View
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              transform: [
+                {
+                  translateY: modalAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [60, 0],
+                  }),
+                },
+              ],
+              opacity: modalAnim,
+            }}
+          >
+            {/* Close X button at top right */}
+            <TouchableOpacity
+              onPress={closeFriendModal}
+              style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 10 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialCommunityIcons name="close" size={28} color="#888" />
+            </TouchableOpacity>
+            {selectedFriend && (
+              <>
+                {selectedFriend.profileImage ? (
+                  <Image source={{ uri: selectedFriend.profileImage }} style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12, marginTop: 12 }} />
+                ) : (
+                  <View style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 12 }}>
+                    <MaterialCommunityIcons name="account-circle" size={72} color="#bbb" />
+                  </View>
+                )}
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 4 }}>{selectedFriend.name}</Text>
+                {/* 상태 등 추가 가능 */}
+                <TouchableOpacity
+                  style={{ backgroundColor: 'black', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 32, marginTop: 18, marginBottom: 20 }}
+                  onPress={() => {
+                    closeFriendModal();
+                    navigation.navigate('FriendAlbum', { friendId: parseInt(selectedFriend.id), friendName: selectedFriend.name });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>앨범 보기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
