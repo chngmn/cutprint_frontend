@@ -663,6 +663,7 @@ const FilterFrameScreen = () => {
             setEditingToolsVisible(false); // Reset editing tools visibility
             setLabelText('cutprint'); // Reset label text
             setIsEditingLabel(false); // Exit editing mode
+            setFlipped(selectedPhotos.map(() => false)); // Reset flipped state
           }}
         >
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
