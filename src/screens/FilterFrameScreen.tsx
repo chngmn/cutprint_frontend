@@ -13,7 +13,8 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import Theme from '../constants/theme';
 // Assuming these components are available in your project structure
 import CustomText from '../components/CustomText';
 import FilterSelector from '../components/FilterSelector';
@@ -21,6 +22,8 @@ import FrameSelector from '../components/FrameSelector';
 // import PhotoEditingTools from './components/PhotoEditingTools'; // Removed as per request
 import { getFilterById, applyFilterToStyle } from '../utils/filterEffects';
 import { getFrameById, applyFrameStyle } from '../utils/frameStyles';
+
+const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
 
 type FilterFrameStackParamList = {
   PreviewAndSave: { imageUri: string; cutType: string };
@@ -98,7 +101,7 @@ const FilterFrameScreen = () => {
       Grid4: styles.previewFrameGrid4,
       Grid6: styles.previewFrameGrid6,
     };
-    
+
     switch (cutType) {
       case 'Vertical 4-cut':
         return baseStyle.Vertical;
@@ -113,7 +116,7 @@ const FilterFrameScreen = () => {
 
   const getSlotStyle = () => {
     const frameStyle = currentFrame ? applyFrameStyle(currentFrame) : {};
-    
+
     const baseSlotStyles = {
       'Vertical 4-cut': styles.previewSlotVertical,
       '4-cut grid': styles.previewSlotGrid4,
@@ -132,7 +135,7 @@ const FilterFrameScreen = () => {
       '4-cut grid': 140,
       '6-cut grid': 140,
     };
-    
+
     return {
       width: widths[cutType as keyof typeof widths] || 70,
       backgroundColor: currentFrame?.style.borderColor || '#000000',
@@ -167,7 +170,7 @@ const FilterFrameScreen = () => {
   const renderPhotoSlot = (index: number) => {
     const hasPhoto = selectedPhotos[index];
     const slotStyle = getSlotStyle();
-    
+
     return (
       <View key={index} style={[styles.previewPhotoSlot, slotStyle]}>
         {hasPhoto ? (
@@ -235,8 +238,33 @@ const FilterFrameScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Unified Header */}
       <View style={styles.header}>
-        <CustomText style={styles.title}>필터 및 프레임 선택</CustomText>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <CustomText style={styles.headerTitle}>편집하기</CustomText>
+          <CustomText style={styles.headerSubtitle}>필터와 프레임 적용</CustomText>
+        </View>
+        <View style={styles.headerAction}>
+          <TouchableOpacity
+            style={[
+              styles.headerBeforeAfterButton,
+              beforeAfterMode && styles.headerBeforeAfterButtonActive,
+            ]}
+            onPress={() => setBeforeAfterMode(!beforeAfterMode)}
+          >
+            <MaterialCommunityIcons
+              name="compare"
+              size={20}
+              color={beforeAfterMode ? Colors.white : Colors.textPrimary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -249,31 +277,6 @@ const FilterFrameScreen = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.previewSection}>
-          {/* Before/After Toggle Button */}
-          <View style={styles.previewControls}>
-            <TouchableOpacity
-              style={[
-                styles.beforeAfterButton,
-                beforeAfterMode && styles.beforeAfterButtonActive,
-              ]}
-              onPress={() => setBeforeAfterMode(!beforeAfterMode)}
-            >
-              <MaterialCommunityIcons
-                name="compare"
-                size={16}
-                color={beforeAfterMode ? '#FFFFFF' : '#6C757D'}
-              />
-              <CustomText
-                style={[
-                  styles.beforeAfterText,
-                  beforeAfterMode && styles.beforeAfterTextActive,
-                ]}
-              >
-                전후비교
-              </CustomText>
-            </TouchableOpacity>
-          </View>
-
           {/* Main Preview Area */}
           <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }}>
             <View style={styles.previewContainer}>
@@ -301,7 +304,7 @@ const FilterFrameScreen = () => {
                   {slots.map((_, index) => renderPhotoSlot(index))}
                 </View>
               )}
-              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}> 
+              <View style={[styles.cutprintLabel, getCutprintLabelStyle()]}>
                 <CustomText
                   style={[
                     styles.cutprintText,
@@ -318,23 +321,14 @@ const FilterFrameScreen = () => {
             </View>
           </ViewShot>
           {/* User Input for Label */}
-          <View style={{ alignItems: 'center', marginVertical: 10 }}>
+          <View style={styles.labelInputContainer}>
             <TextInput
               value={labelText}
               onChangeText={setLabelText}
-              style={{
-                borderWidth: 1,
-                borderColor: '#E9ECEF',
-                borderRadius: 8,
-                padding: 8,
-                width: 120,
-                textAlign: 'center',
-                fontSize: 14,
-                backgroundColor: '#fff',
-              }}
+              style={styles.labelInput}
               maxLength={12}
               placeholder="라벨 입력"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={Colors.textTertiary}
             />
           </View>
         </View>
@@ -356,7 +350,7 @@ const FilterFrameScreen = () => {
               onFilterSelect={setSelectedFilter}
             />
           )}
-          
+
           {activeSection === 'frames' && (
             <FrameSelector
               selectedFrameId={selectedFrame}
@@ -381,7 +375,7 @@ const FilterFrameScreen = () => {
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
           <CustomText style={styles.resetButtonText}>초기화</CustomText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.nextButton}
           onPress={async () => {
@@ -401,61 +395,74 @@ const FilterFrameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.white,
   },
   scrollView: {
-    flex: 1, // Allows the scroll view to take available space
+    flex: 1,
   },
+  // Header Styles (Unified with PreviewAndSaveScreen)
   header: {
-    paddingVertical: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: Colors.gray100,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#343A40',
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  headerAction: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  // Header Before/After Button (New Position)
+  headerBeforeAfterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  headerBeforeAfterButtonActive: {
+    backgroundColor: Colors.textPrimary,
+    borderColor: Colors.textPrimary,
+    ...Shadow.small,
   },
   previewSection: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-    minHeight: 300, // Ensure enough space for preview
+    padding: Spacing.containerPadding,
+    backgroundColor: Colors.white,
+    minHeight: 300,
   },
   previewContainer: {
     alignItems: 'center',
-  },
-  previewControls: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    // marginBottom: 15,
-    paddingHorizontal: 10,
-    width: '100%', // Ensure controls span full width
-  },
-  beforeAfterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  beforeAfterButtonActive: {
-    backgroundColor: '#4867B7',
-    borderColor: '#4867B7',
-  },
-  beforeAfterText: {
-    fontSize: 12,
-    color: '#6C757D',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  beforeAfterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   beforeAfterSplit: {
     flexDirection: 'row',
@@ -466,14 +473,10 @@ const styles = StyleSheet.create({
   },
   framePreviewContainer: {
     marginBottom: 0,
-    backgroundColor: 'black',
+    backgroundColor: Colors.black,
     padding: 2,
     borderRadius: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    ...Shadow.medium,
   },
   previewFrameVertical: {
     width: 70,
@@ -492,7 +495,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   previewPhotoSlot: {
-    backgroundColor: '#E9ECEF',
+    backgroundColor: Colors.gray200,
   },
   previewSlotVertical: {
     width: '100%',
@@ -501,8 +504,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderLeftWidth: 1,
     borderTopWidth: 1,
-    borderColor: '#000000',
-    // borderColor: '#FFFFFF',
+    borderColor: Colors.black,
   },
   previewSlotGrid4: {
     width: '50%',
@@ -511,8 +513,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderLeftWidth: 1,
     borderTopWidth: 1,
-    borderColor: '#000000',
-    // borderColor: '#FFFFFF',
+    borderColor: Colors.black,
   },
   previewSlotGrid6: {
     width: '50%',
@@ -521,8 +522,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderLeftWidth: 1,
     borderTopWidth: 1,
-    borderColor: '#000000',
-    // borderColor: '#FFFFFF',
+    borderColor: Colors.black,
   },
   previewImage: {
     width: '100%',
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     flex: 1,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: Colors.gray300,
   },
   filterOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -543,91 +543,126 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cutprintLabel: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cutprintText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
   },
+  // Filter/Frame Tab Section (Brand Aligned & Minimal)
   modeTabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    // paddingTop: 10,
-    paddingVertical: 10,
+    backgroundColor: Colors.gray50,
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: Colors.gray100,
+    gap: Spacing.sm,
   },
   modeTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: Colors.gray200,
   },
   modeTabSelected: {
-    backgroundColor: '#4867B7',
-    borderColor: '#4867B7',
+    backgroundColor: Colors.textPrimary,
+    borderColor: Colors.textPrimary,
+    ...Shadow.medium,
+    transform: [{ scale: 1.01 }],
   },
   modeTabText: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginLeft: 6,
-    fontWeight: '500',
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: 0.3,
   },
   modeTabTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.bold,
   },
+  // Editing Section (Minimal Design)
   editingSection: {
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden', // Crucial for height animation to clip content
+    backgroundColor: Colors.gray50,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
   },
+
+  // Bottom Action Buttons (Brand Aligned)
   bottomActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#E9ECEF',
+    borderTopColor: Colors.gray100,
+    gap: Spacing.md,
   },
   resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    marginRight: 12,
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderColor: Colors.gray200,
+    ...Shadow.small,
   },
   resetButtonText: {
-    color: '#6C757D',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+    color: Colors.textSecondary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    marginLeft: Spacing.xs,
+    letterSpacing: 0.2,
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#4867B7',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.textPrimary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.medium,
   },
   nextButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  // Label Input Section
+  labelInputContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+  },
+  labelInput: {
+    borderWidth: 2,
+    borderColor: Colors.gray200,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.lg,
+    width: 140,
+    textAlign: 'center',
+    fontSize: Typography.fontSize.sm,
+    backgroundColor: Colors.white,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    letterSpacing: 0.3,
+    ...Shadow.small,
   },
 });
 
