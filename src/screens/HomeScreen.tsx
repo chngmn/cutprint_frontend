@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   ImageBackground,
+  Animated,
 } from 'react-native';
 import CustomText from '../components/CustomText';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +29,8 @@ type RootStackParamList = {
 const HomeScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [scale] = useState(new Animated.Value(1));
+  const [pressed, setPressed] = useState(false);
 
   const fetchNotifications = () => {
     apiService.getNotifications()
@@ -48,6 +51,30 @@ const HomeScreen = () => {
     }
   };
 
+  const handlePressIn = () => {
+    setPressed(true);
+    Animated.spring(scale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    setPressed(false);
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 10,
+    }).start();
+  };
+
+  const handleNavigate = () => {
+    navigation.navigate('CutSelection');
+  };
+
   return (
     <View style={styles.container}>
       {/* 알림 목록 표시 */}
@@ -66,28 +93,22 @@ const HomeScreen = () => {
         <CustomText style={styles.subHeader}>
           언제 어디서든, 간편하게 네컷
         </CustomText>
-      </View>
-      <View style={styles.cardContainer}>
         <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('CutSelection')}
+          activeOpacity={0.8}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handleNavigate}
+          style={[
+            styles.cutprintButton,
+            pressed && styles.cutprintButtonPressed,
+          ]}
         >
-          <Ionicons name="people-outline" size={48} color="#000000" />
-          <CustomText style={styles.cardTitle}>같은 공간</CustomText>
-          <CustomText style={styles.cardDescription}>
-            친구와 함께 찍기
-          </CustomText>
+           <Animated.View style={[styles.cutprintButtonInner, { transform: [{ scale }] }] }>
+             <CustomText style={styles.cutprintText}>cutprint</CustomText>
+             <Ionicons name="camera-outline" size={28} color="#111" style={{ marginLeft: 8, marginBottom: 1 }} />
+           </Animated.View>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.card}
-          onPress={() => navigation.navigate('CutSelectionOnline')}
-        >
-          <Ionicons name="wifi-outline" size={48} color="#000000" />
-          <CustomText style={styles.cardTitle}>멀리서도</CustomText>
-          <CustomText style={styles.cardDescription}>
-            온라인으로 함께 찍기
-          </CustomText>
-        </TouchableOpacity>
+        <CustomText style={styles.guideText}>네컷 사진 찍기</CustomText>
       </View>
     </View>
   );
@@ -158,6 +179,51 @@ const styles = StyleSheet.create({
     color: '#868E96',
     marginTop: 4,
     textAlign: 'center',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cutprintText: {
+    fontSize: 40,
+    fontWeight: '900',
+    color: '#111',
+    letterSpacing: 2,
+    textDecorationLine: 'none',
+  },
+  cutprintTouchable: {
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  cutprintButton: {
+    marginTop: 32,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#111',
+    paddingVertical: 18,
+    paddingHorizontal: 44,
+    shadowColor: '#111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cutprintButtonPressed: {
+    backgroundColor: '#f5f5f5',
+  },
+  cutprintButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  guideText: {
+    marginTop: 14,
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    fontWeight: '400',
   },
 });
 
