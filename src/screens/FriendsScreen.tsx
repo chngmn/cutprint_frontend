@@ -12,6 +12,8 @@ import {
   Modal, // Modal 추가
   Animated, // Animated API 추가
   Easing, // Easing 추가
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/apiService';
@@ -75,6 +77,7 @@ const FriendsScreen = () => {
         try {
           const res = await apiService.isUserOnline(Number(friend.id));
           statusObj[String(friend.id)] = !!res.online;
+          console.log('statusObj', statusObj);
         } catch (error) {
           statusObj[String(friend.id)] = false;
           console.log('error', error);
@@ -429,7 +432,8 @@ const FriendsScreen = () => {
   // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   return (
-    <View style={styles.container}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
       {/* <View style={styles.header}> */}
       {/* <Text style={styles.title}>친구</Text> */}
       {/* <TouchableOpacity style={styles.headerIcon}> */}
@@ -636,7 +640,8 @@ const FriendsScreen = () => {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
