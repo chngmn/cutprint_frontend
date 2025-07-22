@@ -58,7 +58,7 @@
   
 
 ## 🗄️ 데이터베이스
-- PostgreSQL 사용 (로컬: localhost:5432, 사용자: seokyung, 비밀번호 없음)
+- PostgreSQL 사용
 - TypeORM 동기화로 개발 환경에서 스키마 자동 업데이트
 
 
