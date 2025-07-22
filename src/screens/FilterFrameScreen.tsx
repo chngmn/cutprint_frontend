@@ -15,6 +15,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
+import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Theme from '../constants/theme';
 // Assuming these components are available in your project structure
@@ -72,6 +73,8 @@ const FilterFrameScreen = () => {
   // Photo editing state
   const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
   const [editingToolsVisible, setEditingToolsVisible] = useState(false);
+  const [flipped, setFlipped] = useState<boolean[]>(() => selectedPhotos.map(() => false));
+  const [processedPhotos, setProcessedPhotos] = useState<string[]>(selectedPhotos);
 
   // Animated value for the height of the editing panel
   const animatedPanelHeight = useRef(new Animated.Value(0)).current;
@@ -143,6 +146,31 @@ const FilterFrameScreen = () => {
       }).start();
     }
   }, [activeSection, editingToolsVisible]); // Re-run animation when activeSection or editingToolsVisible changes
+
+  useEffect(() => {
+    setFlipped(selectedPhotos.map(() => false));
+  }, [selectedPhotos]);
+
+  useEffect(() => {
+    const processImages = async () => {
+      const newProcessedPhotos = await Promise.all(
+        selectedPhotos.map(async (uri, index) => {
+          if (flipped[index]) {
+            const manipulatedImage = await manipulateAsync(
+              uri,
+              [{ flip: FlipType.Horizontal }],
+              { format: SaveFormat.PNG }
+            );
+            return manipulatedImage.uri;
+          }
+          return uri;
+        })
+      );
+      setProcessedPhotos(newProcessedPhotos);
+    };
+
+    processImages();
+  }, [flipped]);
 
   const getFrameStyle = () => {
     const baseStyle = {
@@ -221,17 +249,31 @@ const FilterFrameScreen = () => {
 
 
   const renderPhotoSlot = (index: number) => {
-    const hasPhoto = selectedPhotos[index];
+    const hasPhoto = processedPhotos[index];
     const slotStyle = getSlotStyle();
+
+    const toggleFlip = (photoIndex: number) => {
+        setFlipped(currentFlipped => {
+            const newFlipped = [...currentFlipped];
+            newFlipped[photoIndex] = !newFlipped[photoIndex];
+            return newFlipped;
+        });
+    };
 
     return (
       <View key={index} style={[styles.previewPhotoSlot, slotStyle]}>
         {hasPhoto ? (
           <View style={{ position: 'relative', flex: 1 }}>
             <Image
-              source={{ uri: selectedPhotos[index] }}
+              source={{ uri: processedPhotos[index] }}
               style={[styles.previewImage]}
             />
+            <TouchableOpacity
+              style={styles.flipButton}
+              onPress={() => toggleFlip(index)}
+            >
+              <MaterialCommunityIcons name="flip-horizontal" size={24} color="white" />
+            </TouchableOpacity>
             {/* Apply editing filters as overlay effects since React Native doesn't support CSS filters */}
             
             {/* Brightness Overlay */}
@@ -380,7 +422,7 @@ const FilterFrameScreen = () => {
               <View style={[StyleSheet.absoluteFillObject, styles.beforeAfterSplit]}>
                 <View style={styles.beforeHalf}>
                   <Image
-                    source={{ uri: selectedPhotos[index] }}
+                    source={{ uri: processedPhotos[index] }}
                     style={styles.previewImage}
                   />
                 </View>
@@ -803,6 +845,14 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '100%',
+  },
+  flipButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+    padding: 5,
   },
   placeholder: {
     flex: 1,
