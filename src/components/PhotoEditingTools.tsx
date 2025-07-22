@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -248,7 +249,7 @@ const PhotoEditingTools: React.FC<PhotoEditingToolsProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
+      {/* 헤더 - Fixed */}
       <View style={styles.header}>
         <CustomText style={styles.headerTitle}>사진 편집</CustomText>
         <View style={styles.headerActions}>
@@ -265,15 +266,26 @@ const PhotoEditingTools: React.FC<PhotoEditingToolsProps> = ({
         </View>
       </View>
 
-      {/* 도구 목록 */}
-      <View style={styles.toolsContainer}>
-        <View style={styles.toolsGrid}>
-          {editingTools.map(renderToolButton)}
+      {/* Scrollable Content Area */}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+      >
+        {/* 도구 목록 */}
+        <View style={styles.toolsContainer}>
+          <View style={styles.toolsGrid}>
+            {editingTools.map(renderToolButton)}
+          </View>
         </View>
-      </View>
 
-      {/* 슬라이더 */}
-      {renderSlider()}
+        {/* 슬라이더 */}
+        {renderSlider()}
+      </ScrollView>
     </View>
   );
 };
@@ -283,7 +295,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
-    maxHeight: 300,
+    maxHeight: 250, // Reduced from 300 to 250 to fit properly in FilterFrameScreen
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    // Add subtle shadow for scroll depth indication
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 10, // Add bottom padding for better scroll experience
+    minHeight: 'auto', // Allow dynamic sizing based on content
   },
   toggleButton: {
     flexDirection: 'row',
@@ -309,7 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 12, // Reduced from 15 to 12 for more compact layout
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
   },
@@ -339,7 +370,7 @@ const styles = StyleSheet.create({
   },
   toolsContainer: {
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 8, // Reduced from 10 to 8 for tighter spacing
   },
   toolsGrid: {
     flexDirection: 'row',
@@ -351,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '18%',
     aspectRatio: 1,
-    marginBottom: 10,
+    marginBottom: 8, // Reduced margin for better scroll density
     borderRadius: 12,
     backgroundColor: '#F8F9FA',
     borderWidth: 1,
@@ -392,7 +423,7 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 12, // Reduced from 15 to 12 for more compact layout
     backgroundColor: '#F8F9FA',
     borderTopWidth: 1,
     borderTopColor: '#E9ECEF',
@@ -401,7 +432,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12, // Reduced for better scroll density
   },
   sliderTitle: {
     fontSize: 16,
