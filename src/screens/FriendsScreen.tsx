@@ -853,6 +853,8 @@ const styles = StyleSheet.create({
   listItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    flex: 1,
   },
   statusText: {
     fontSize: 14,
