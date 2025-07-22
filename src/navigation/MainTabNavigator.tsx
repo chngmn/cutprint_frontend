@@ -110,7 +110,7 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
           borderBottomWidth: 0,
         },
         headerTitleStyle: {
-          fontSize: 20,
+          fontSize: 25,
           fontWeight: 'bold',
         },
         headerRight: () => (
@@ -128,12 +128,12 @@ const MainTabNavigator: React.FC<MainTabNavigatorProps> = ({ navigation }) => {
       <Tab.Screen
         name="Friends"
         component={FriendsScreen}
-        options={{ title: 'Cutprint' }}
+        options={{ title: 'Friends' }}
       />
       <Tab.Screen
         name="Album"
         component={AlbumScreen}
-        options={{ title: 'Cutprint' }}
+        options={{ title: 'My Photos' }}
       />
     </Tab.Navigator>
   );
