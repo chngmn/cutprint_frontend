@@ -117,10 +117,10 @@ class ApiService {
   }
 
   // 사진 업로드 (base64)
-  async uploadPhoto(base64Image: string, friendIds?: number[]): Promise<any> {
+  async uploadPhoto(base64Image: string, friendIds?: number[], visibility?: 'PRIVATE' | 'CLOSE_FRIENDS' | 'ALL_FRIENDS'): Promise<any> {
     return this.makeRequest('/photos/upload-base64', {
       method: 'POST',
-      body: JSON.stringify({ image: base64Image, friendIds }),
+      body: JSON.stringify({ image: base64Image, friendIds, visibility: visibility || 'ALL_FRIENDS' }),
     });
   }
 
@@ -138,6 +138,14 @@ class ApiService {
   async deletePhoto(photoId: number): Promise<any> {
     return this.makeRequest(`/photos/${photoId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // 사진 공개 설정 업데이트
+  async updatePhotoVisibility(photoId: number, visibility: 'PRIVATE' | 'CLOSE_FRIENDS' | 'ALL_FRIENDS'): Promise<any> {
+    return this.makeRequest(`/photos/${photoId}/visibility`, {
+      method: 'POST',
+      body: JSON.stringify({ visibility }),
     });
   }
 

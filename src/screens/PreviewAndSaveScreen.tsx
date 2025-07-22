@@ -37,6 +37,7 @@ type PreviewAndSaveScreenNavigationProp = StackNavigationProp<any>;
 
 import * as FileSystem from 'expo-file-system';
 import { apiService } from '../services/apiService';
+import PhotoPermissionSelector, { PhotoVisibility } from '../components/PhotoPermissionSelector';
 
 const { width, height } = Dimensions.get('window');
 const { Colors, Typography, Spacing, Radius, Shadow } = Theme;
@@ -51,6 +52,8 @@ const PreviewAndSaveScreen = () => {
   const [showFriendSelector, setShowFriendSelector] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [photoVisibility, setPhotoVisibility] = useState<PhotoVisibility>('ALL_FRIENDS');
+  const [showPermissionSelector, setShowPermissionSelector] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -121,7 +124,7 @@ const PreviewAndSaveScreen = () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      await apiService.uploadPhoto(base64, selectedFriends);
+      await apiService.uploadPhoto(base64, selectedFriends, photoVisibility);
 
       // @ts-ignore
       navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType, refresh: true, friends: selectedFriends } });
@@ -202,6 +205,18 @@ const PreviewAndSaveScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.secondaryActions}>
+          <TouchableOpacity 
+            style={styles.secondaryAction} 
+            onPress={() => setShowPermissionSelector(true)}
+          >
+            <MaterialCommunityIcons 
+              name={photoVisibility === 'PRIVATE' ? 'lock' : photoVisibility === 'CLOSE_FRIENDS' ? 'star' : 'account-group'} 
+              size={20} 
+              color={Colors.textPrimary} 
+            />
+            <Text style={styles.secondaryActionText}>공개 설정</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.secondaryAction} onPress={printImage}>
             <Ionicons name="print-outline" size={20} color={Colors.textPrimary} />
             <Text style={styles.secondaryActionText}>출력</Text>
@@ -290,6 +305,16 @@ const PreviewAndSaveScreen = () => {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Photo Permission Selector Modal */}
+      <PhotoPermissionSelector
+        visible={showPermissionSelector}
+        currentVisibility={photoVisibility}
+        onSelect={(visibility) => {
+          setPhotoVisibility(visibility);
+        }}
+        onClose={() => setShowPermissionSelector(false)}
+      />
     </SafeAreaView>
   );
 };
