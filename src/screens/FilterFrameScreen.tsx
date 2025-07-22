@@ -15,6 +15,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
+import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import Theme from '../constants/theme';
 // Assuming these components are available in your project structure
@@ -72,6 +73,8 @@ const FilterFrameScreen = () => {
   // Photo editing state
   const [editingValues, setEditingValues] = useState<{ [key: string]: number }>({});
   const [editingToolsVisible, setEditingToolsVisible] = useState(false);
+  const [processedPhotos, setProcessedPhotos] = useState<string[]>(selectedPhotos);
+  const [globalFlip, setGlobalFlip] = useState<boolean>(false);
 
   // Animated value for the height of the editing panel
   const animatedPanelHeight = useRef(new Animated.Value(0)).current;
@@ -143,6 +146,27 @@ const FilterFrameScreen = () => {
       }).start();
     }
   }, [activeSection, editingToolsVisible]); // Re-run animation when activeSection or editingToolsVisible changes
+
+  useEffect(() => {
+    const processImages = async () => {
+      const newProcessedPhotos = await Promise.all(
+        selectedPhotos.map(async (uri) => {
+          if (globalFlip) {
+            const manipulatedImage = await manipulateAsync(
+              uri,
+              [{ flip: FlipType.Horizontal }],
+              { format: SaveFormat.PNG }
+            );
+            return manipulatedImage.uri;
+          }
+          return uri;
+        })
+      );
+      setProcessedPhotos(newProcessedPhotos);
+    };
+
+    processImages();
+  }, [globalFlip, selectedPhotos]);
 
   const getFrameStyle = () => {
     const baseStyle = {
@@ -221,7 +245,7 @@ const FilterFrameScreen = () => {
 
 
   const renderPhotoSlot = (index: number) => {
-    const hasPhoto = selectedPhotos[index];
+    const hasPhoto = processedPhotos[index];
     const slotStyle = getSlotStyle();
 
     return (
@@ -229,7 +253,7 @@ const FilterFrameScreen = () => {
         {hasPhoto ? (
           <View style={{ position: 'relative', flex: 1 }}>
             <Image
-              source={{ uri: selectedPhotos[index] }}
+              source={{ uri: processedPhotos[index] }}
               style={[styles.previewImage]}
             />
             {/* Apply editing filters as overlay effects since React Native doesn't support CSS filters */}
@@ -380,7 +404,7 @@ const FilterFrameScreen = () => {
               <View style={[StyleSheet.absoluteFillObject, styles.beforeAfterSplit]}>
                 <View style={styles.beforeHalf}>
                   <Image
-                    source={{ uri: selectedPhotos[index] }}
+                    source={{ uri: processedPhotos[index] }}
                     style={styles.previewImage}
                   />
                 </View>
@@ -528,6 +552,16 @@ const FilterFrameScreen = () => {
               </TouchableOpacity>
             </View>
           </ViewShot>
+          <TouchableOpacity
+            style={styles.globalFlipButton}
+            onPress={() => setGlobalFlip(!globalFlip)}
+          >
+            <MaterialCommunityIcons
+              name="flip-horizontal"
+              size={24}
+              color={globalFlip ? Colors.primary : "white"}
+            />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -621,6 +655,7 @@ const FilterFrameScreen = () => {
             setEditingToolsVisible(false); // Reset editing tools visibility
             setLabelText('cutprint'); // Reset label text
             setIsEditingLabel(false); // Exit editing mode
+            setGlobalFlip(false); // Reset global flip state
           }}
         >
           <MaterialCommunityIcons name="restore" size={20} color="#6C757D" />
@@ -739,6 +774,7 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     alignItems: 'center',
+    position: 'relative',
   },
   beforeAfterSplit: {
     flexDirection: 'row',
@@ -803,6 +839,15 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '100%',
+  },
+  globalFlipButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10, // Ensure it's above other elements
   },
   placeholder: {
     flex: 1,
