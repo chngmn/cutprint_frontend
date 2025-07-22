@@ -6,11 +6,6 @@ export const Colors = {
   primaryLight: '#9a9aa1ff',
   primaryDark: '#27272aff',
 
-  // Secondary Colors  
-  secondary: '#FF6B6B',      // Coral red
-  secondaryLight: '#FF8E8E',
-  secondaryDark: '#E55555',
-
   // Neutral Colors
   white: '#FFFFFF',
   black: '#000000',
@@ -48,14 +43,6 @@ export const Colors = {
   overlay: 'rgba(0, 0, 0, 0.6)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
   overlayDark: 'rgba(0, 0, 0, 0.8)',
-
-  // Gradient Colors
-  gradient: {
-    primary: ['#3f3f42ff', '#27272aff'],
-    sunset: ['#FF6B6B', '#FFB347'],
-    ocean: ['#667eea', '#764ba2'],
-    minimal: ['#F8F9FA', '#E9ECEF'],
-  }
 };
 
 export const Typography = {
