@@ -45,6 +45,7 @@ const CameraScreen = () => {
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [showControls, setShowControls] = useState<boolean>(true);
+  const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation<CameraScreenNavigationProp>();
 
@@ -222,6 +223,10 @@ const CameraScreen = () => {
     setShowControls(!showControls);
   };
 
+  const toggleCamera = () => {
+    setCameraFacing(prevFacing => prevFacing === 'front' ? 'back' : 'front');
+  };
+
   if (!permission) {
     // Permissions are still loading
     return <View />;
@@ -241,7 +246,7 @@ const CameraScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={'front'} ref={cameraRef}>
+      <CameraView style={styles.camera} facing={cameraFacing} ref={cameraRef}>
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
@@ -312,6 +317,18 @@ const CameraScreen = () => {
               </View>
             </TouchableOpacity>
           </Animated.View>
+
+          {/* Camera Switch Button */}
+          <TouchableOpacity
+            style={styles.cameraToggleButton}
+            onPress={toggleCamera}
+          >
+            <MaterialCommunityIcons
+              name="camera-flip"
+              size={24}
+              color={Colors.white}
+            />
+          </TouchableOpacity>
 
           {/* Hide/Show Controls Button */}
           <TouchableOpacity
@@ -447,6 +464,20 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.textTertiary,
     textAlign: 'center',
+  },
+
+  // Camera Toggle Button
+  cameraToggleButton: {
+    position: 'absolute',
+    bottom: 60,
+    left: Spacing.containerPadding,
+    backgroundColor: Colors.overlayDark,
+    width: 48,
+    height: 48,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.medium,
   },
 
   // Toggle Button
