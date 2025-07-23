@@ -170,7 +170,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
-  const BACKEND_URL = 'http://192.249.27.125:3000'; // 실제 배포시 주소로 변경
+  const BACKEND_URL = 'http://192.249.27.83:3000'; // 실제 배포시 주소로 변경
 
   const handleSignup = async () => {
     if (!signupEmail || !signupPassword || !signupPasswordConfirm || !signupNickname) {
