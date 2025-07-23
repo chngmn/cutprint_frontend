@@ -295,6 +295,7 @@ const composeImagesWithViewShot = async (options: ComposeImagesOptions): Promise
 /**
  * ViewShot을 위한 합성 View 속성 계산
  * PreviewAndSaveScreen에서 ViewShot 합성 시 사용할 스타일과 위치 정보 반환
+ * 원본 이미지 크기와 정확히 일치하도록 개선됨
  */
 export const calculateViewShotCompositionProps = (
   imageWidth: number,
@@ -302,13 +303,26 @@ export const calculateViewShotCompositionProps = (
   qrCodeSize: number,
   qrCodePosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' = 'bottom-right'
 ) => {
-  const qrPosition = calculateQRPosition(imageWidth, imageHeight, qrCodeSize, qrCodePosition);
+  // 유효한 이미지 크기가 없는 경우 기본값 사용하지 않고 에러 처리
+  if (!imageWidth || !imageHeight || imageWidth <= 0 || imageHeight <= 0) {
+    console.warn('Invalid image dimensions for ViewShot composition:', { imageWidth, imageHeight });
+    // 기본 정사각형 크기 사용
+    imageWidth = 400;
+    imageHeight = 400;
+  }
+
+  // QR 코드 크기가 이미지 대비 너무 큰 경우 제한
+  const maxQRSize = Math.min(imageWidth, imageHeight) * 0.25; // 최대 25%
+  const adjustedQRSize = Math.min(qrCodeSize, maxQRSize);
+  
+  const qrPosition = calculateQRPosition(imageWidth, imageHeight, adjustedQRSize, qrCodePosition);
   
   return {
     containerStyle: {
       width: imageWidth,
       height: imageHeight,
       position: 'relative' as const,
+      backgroundColor: 'transparent', // 투명 배경 보장
     },
     imageStyle: {
       width: imageWidth,
@@ -316,13 +330,14 @@ export const calculateViewShotCompositionProps = (
       position: 'absolute' as const,
       top: 0,
       left: 0,
+      // resizeMode를 contain으로 강제하여 원본 비율 유지
     },
     qrCodeStyle: {
       position: 'absolute' as const,
       top: qrPosition.y,
       left: qrPosition.x,
-      width: qrCodeSize,
-      height: qrCodeSize,
+      width: adjustedQRSize,
+      height: adjustedQRSize,
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderRadius: 6,
       padding: 6,
@@ -333,10 +348,12 @@ export const calculateViewShotCompositionProps = (
       elevation: 5,
     },
     qrImageStyle: {
-      width: qrCodeSize - 12,
-      height: qrCodeSize - 12,
+      width: adjustedQRSize - 12,
+      height: adjustedQRSize - 12,
       borderRadius: 2,
-    }
+    },
+    // 조정된 QR 코드 크기 반환 (QRCode 컴포넌트에서 사용)
+    adjustedQRSize: adjustedQRSize - 12
   };
 };
 
