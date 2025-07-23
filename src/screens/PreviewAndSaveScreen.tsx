@@ -1,5 +1,5 @@
 //src/screens/PreviewAndSaveScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Image,
@@ -14,12 +14,13 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
 import { printImageSafely, isPrintingAvailable } from '../utils/printUtils';
-import { composeImageWithQRCode, composeImageWithProgress, CompositionProgressCallback } from '../utils/imageCompositionUtils';
+import { composeImageWithQRCode, composeImageWithProgress, CompositionProgressCallback, calculateViewShotCompositionProps } from '../utils/imageCompositionUtils';
 import { validateQRCodeValue } from '../utils/qrCodeUtils';
 import { handlePrintError, handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -66,6 +67,9 @@ const PreviewAndSaveScreen = () => {
   const [s3ImageUrl, setS3ImageUrl] = useState<string>('');
   const [photoId, setPhotoId] = useState<number | null>(null);
   const [isPrintAvailable, setIsPrintAvailable] = useState(false);
+
+  // ViewShot ref for image composition
+  const compositionViewShotRef = useRef<ViewShot>(null);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -178,6 +182,32 @@ const PreviewAndSaveScreen = () => {
     }
   };
 
+  // ViewShot을 사용한 이미지 합성 함수
+  const composeImageWithViewShot = async (): Promise<string> => {
+    try {
+      if (!compositionViewShotRef.current) {
+        throw new Error('ViewShot ref not available');
+      }
+
+      setIsComposingImage(true);
+      setCompositionStage('이미지 합성 중...');
+      setCompositionProgress(75);
+
+      // ViewShot으로 합성된 이미지 캡처
+      const capturedUri = await compositionViewShotRef.current.capture();
+      
+      setCompositionProgress(100);
+      setCompositionStage('완료');
+      
+      return capturedUri;
+    } catch (error) {
+      console.error('ViewShot composition error:', error);
+      throw new Error('이미지 합성 중 오류가 발생했습니다.');
+    } finally {
+      setIsComposingImage(false);
+    }
+  };
+
   const printImage = async () => {
     try {
       if (!isPrintAvailable) {
@@ -185,14 +215,10 @@ const PreviewAndSaveScreen = () => {
         return;
       }
 
-      let qrCodeUri: string | undefined = undefined;
+      let finalImageUri: string = imageUri;
 
-      // QR 코드 포함 옵션이 선택된 경우
+      // QR 코드 포함 옵션이 선택된 경우 - ViewShot으로 이미지 합성
       if (includeQRCode && s3ImageUrl) {
-        setIsComposingImage(true);
-        setCompositionStage('QR 코드 생성 중...');
-        setCompositionProgress(50);
-
         try {
           // QR 코드 값 유효성 검증 (S3 URL 사용)
           const validation = validateQRCodeValue(s3ImageUrl);
@@ -200,35 +226,23 @@ const PreviewAndSaveScreen = () => {
             throw new Error(validation.error);
           }
 
-          // QR 코드를 별도로 생성 (S3 객체 URL 사용)
-          const { generateQRCodeBase64 } = require('../utils/qrCodeUtils');
-          const qrSize = Math.min(imageDimensions.width, imageDimensions.height) * 0.15; // 15% 크기
-          
-          qrCodeUri = await generateQRCodeBase64({
-            value: s3ImageUrl,
-            size: qrSize,
-            backgroundColor: 'white',
-            color: 'black'
-          });
-          
-          setCompositionProgress(100);
-          setCompositionStage('완료');
+          // ViewShot을 사용하여 이미지 합성
+          const composedImageUri = await composeImageWithViewShot();
+          finalImageUri = composedImageUri;
 
-        } catch (qrError) {
-          console.error('QR 코드 생성 실패:', qrError);
+        } catch (compositionError) {
+          console.error('이미지 합성 실패:', compositionError);
 
-          // QR 코드 생성 실패 시 사용자에게 선택권 제공
+          // 이미지 합성 실패 시 사용자에게 선택권 제공
           Alert.alert(
-            'QR 코드 생성 오류',
-            'QR 코드를 생성할 수 없습니다. QR 코드 없이 인쇄하시겠습니까?',
+            '이미지 합성 오류',
+            '이미지와 QR 코드를 합성할 수 없습니다. QR 코드 없이 인쇄하시겠습니까?',
             [
               { text: '취소', style: 'cancel' },
-              { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri, undefined) }
+              { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) }
             ]
           );
           return;
-        } finally {
-          setIsComposingImage(false);
         }
       } else if (includeQRCode && !s3ImageUrl) {
         // S3 URL이 없는 경우 사용자 안내
@@ -237,7 +251,7 @@ const PreviewAndSaveScreen = () => {
           'QR 코드를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
           [
             { text: '취소', style: 'cancel' },
-            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri, undefined) },
+            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) },
             {
               text: '저장 후 인쇄', onPress: () => {
                 Alert.alert('안내', '먼저 앨범에 저장한 후 다시 인쇄해주세요.');
@@ -248,8 +262,8 @@ const PreviewAndSaveScreen = () => {
         return;
       }
 
-      // 원본 이미지와 별도 QR 코드로 인쇄 (HTML 오버레이 방식)
-      await proceedWithPrint(imageUri, qrCodeUri);
+      // 합성된 이미지 또는 원본 이미지로 인쇄 (단일 이미지 방식)
+      await proceedWithPrint(finalImageUri);
 
     } catch (error: any) {
       console.error('Print preparation error:', error);
@@ -257,13 +271,11 @@ const PreviewAndSaveScreen = () => {
     }
   };
 
-  const proceedWithPrint = async (uri: string, qrCodeUri?: string) => {
+  const proceedWithPrint = async (uri: string) => {
     try {
+      // 합성된 단일 이미지로 인쇄 (QR 코드가 이미 포함되어 있음)
       await printImageSafely({
         imageUri: uri,
-        qrCodeUri: qrCodeUri,
-        qrCodePosition: 'top-right',
-        qrCodeSize: 80,
         title: 'Cutprint Photo',
         orientation: 'portrait'
       });
@@ -272,7 +284,7 @@ const PreviewAndSaveScreen = () => {
 
       // 추가적인 에러 핸들링
       handlePrintError(error, uri, {
-        fallbackAction: () => proceedWithPrint(uri, qrCodeUri),
+        fallbackAction: () => proceedWithPrint(uri),
         logError: true
       });
     }
@@ -527,6 +539,58 @@ const PreviewAndSaveScreen = () => {
         }}
         onClose={() => setShowPermissionSelector(false)}
       />
+
+      {/* Hidden ViewShot for Image Composition */}
+      {includeQRCode && s3ImageUrl && (
+        <View style={styles.hiddenCompositionView}>
+          <ViewShot
+            ref={compositionViewShotRef}
+            options={{ format: 'png', quality: 1 }}
+            style={[
+              styles.compositionContainer,
+              calculateViewShotCompositionProps(
+                imageDimensions.width || 300,
+                imageDimensions.height || 400,
+                Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15
+              ).containerStyle
+            ]}
+          >
+            {/* Background Image */}
+            <Image
+              source={{ uri: imageUri }}
+              style={[
+                styles.compositionImage,
+                calculateViewShotCompositionProps(
+                  imageDimensions.width || 300,
+                  imageDimensions.height || 400,
+                  Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15
+                ).imageStyle
+              ]}
+              resizeMode="cover"
+            />
+            
+            {/* QR Code Overlay */}
+            <View
+              style={[
+                styles.compositionQRContainer,
+                calculateViewShotCompositionProps(
+                  imageDimensions.width || 300,
+                  imageDimensions.height || 400,
+                  Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15,
+                  'bottom-right'
+                ).qrCodeStyle
+              ]}
+            >
+              <QRCode
+                value={s3ImageUrl}
+                size={Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15 - 12}
+                backgroundColor="white"
+                color="black"
+              />
+            </View>
+          </ViewShot>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -826,6 +890,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xs,
+  },
+
+  // Hidden ViewShot Composition Styles
+  hiddenCompositionView: {
+    position: 'absolute',
+    top: -10000, // Hide off-screen
+    left: -10000,
+    opacity: 0,
+  },
+  compositionContainer: {
+    backgroundColor: 'transparent',
+  },
+  compositionImage: {
+    // Style will be calculated dynamically
+  },
+  compositionQRContainer: {
+    // Style will be calculated dynamically
   },
 });
 

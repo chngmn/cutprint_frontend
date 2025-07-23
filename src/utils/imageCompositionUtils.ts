@@ -284,14 +284,60 @@ const composeImagesWithCanvas = async (options: ComposeImagesOptions): Promise<s
 
 /**
  * ViewShot을 사용한 이미지 합성 (React Native)
+ * 실제 ViewShot 캡처는 컴포넌트에서 수행되어야 함
  */
 const composeImagesWithViewShot = async (options: ComposeImagesOptions): Promise<string> => {
-  // ViewShot을 사용하여 React Native View를 이미지로 캡처하는 방식
-  // 실제 구현에서는 ViewShot ref를 활용해야 합니다.
+  // ViewShot은 React 컴포넌트 내에서만 사용 가능하므로
+  // 이 함수는 컴포넌트에서 직접 구현되어야 합니다.
+  throw new Error('ViewShot composition must be performed in React component with ViewShot ref');
+};
+
+/**
+ * ViewShot을 위한 합성 View 속성 계산
+ * PreviewAndSaveScreen에서 ViewShot 합성 시 사용할 스타일과 위치 정보 반환
+ */
+export const calculateViewShotCompositionProps = (
+  imageWidth: number,
+  imageHeight: number,
+  qrCodeSize: number,
+  qrCodePosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' = 'bottom-right'
+) => {
+  const qrPosition = calculateQRPosition(imageWidth, imageHeight, qrCodeSize, qrCodePosition);
   
-  // 임시 대안: 원본 이미지 반환
-  console.warn('ViewShot composition not implemented, returning original image');
-  return options.backgroundImage;
+  return {
+    containerStyle: {
+      width: imageWidth,
+      height: imageHeight,
+      position: 'relative' as const,
+    },
+    imageStyle: {
+      width: imageWidth,
+      height: imageHeight,
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+    },
+    qrCodeStyle: {
+      position: 'absolute' as const,
+      top: qrPosition.y,
+      left: qrPosition.x,
+      width: qrCodeSize,
+      height: qrCodeSize,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: 6,
+      padding: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    qrImageStyle: {
+      width: qrCodeSize - 12,
+      height: qrCodeSize - 12,
+      borderRadius: 2,
+    }
+  };
 };
 
 /**
