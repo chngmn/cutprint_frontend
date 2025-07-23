@@ -8,7 +8,7 @@
     <tr>
       <td align="center" width="200">
         <a href="https://github.com/braveseokyung">
-          <img width="120" height="120" alt="Image" src="https://github.com/user-attachments/assets/bed619eb-5f33-4ea5-942a-3607bd4b294d" />
+          <img width="71.1" height="117.5" alt="KakaoTalk_20250723_212310830" src="https://github.com/user-attachments/assets/f6d85ccf-81d1-4343-94ed-642f8dd00d1e" />
           <br />
         </a>
       </td>
