@@ -19,10 +19,10 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
-import { printImageSafely, isPrintingAvailable } from '../utils/printUtils';
+import { isPrintingAvailable } from '../utils/printUtils';
 import { composeImageWithQRCode, composeImageWithProgress, CompositionProgressCallback, calculateViewShotCompositionProps } from '../utils/imageCompositionUtils';
 import { validateQRCodeValue } from '../utils/qrCodeUtils';
-import { handlePrintError, handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
+import { handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
@@ -119,11 +119,14 @@ const PreviewAndSaveScreen = () => {
           const aspectRatio = imageWidth / imageHeight;
           setImageAspectRatio(aspectRatio);
           setImageDimensions({ width: imageWidth, height: imageHeight });
+          console.log('Image dimensions loaded:', { imageWidth, imageHeight, aspectRatio });
         },
         (error) => {
           console.error('Error getting image size:', error);
           // Fallback to square aspect ratio
           setImageAspectRatio(1);
+          // Set fallback dimensions for ViewShot consistency
+          setImageDimensions({ width: 400, height: 400 });
         }
       );
     }
@@ -213,12 +216,21 @@ const PreviewAndSaveScreen = () => {
         throw new Error('ViewShot ref not available');
       }
 
+      // 이미지 크기가 로드되지 않은 경우 에러
+      if (!imageDimensions.width || !imageDimensions.height) {
+        throw new Error('Image dimensions not loaded. Please wait for image to load completely.');
+      }
+
       setIsComposingImage(true);
       setCompositionStage('이미지 합성 중...');
       setCompositionProgress(75);
 
+      console.log('Starting ViewShot capture with dimensions:', imageDimensions);
+
       // ViewShot으로 합성된 이미지 캡처
       const capturedUri = await compositionViewShotRef.current.capture();
+
+      console.log('ViewShot capture completed:', capturedUri);
 
       setCompositionProgress(100);
       setCompositionStage('완료');
@@ -236,6 +248,12 @@ const PreviewAndSaveScreen = () => {
     try {
       if (!isPrintAvailable) {
         Alert.alert('인쇄 불가', '현재 기기에서는 인쇄 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      // QR 코드 포함 옵션이 선택되지 않은 경우 - AlbumScreen과 동일한 직접 인쇄 방식 사용
+      if (!includeQRCode) {
+        await proceedWithDirectPrint(imageUri);
         return;
       }
 
@@ -263,7 +281,7 @@ const PreviewAndSaveScreen = () => {
             '이미지와 QR 코드를 합성할 수 없습니다. QR 코드 없이 인쇄하시겠습니까?',
             [
               { text: '취소', style: 'cancel' },
-              { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) }
+              { text: 'QR 없이 인쇄', onPress: () => proceedWithDirectPrint(imageUri) }
             ]
           );
           return;
@@ -275,7 +293,7 @@ const PreviewAndSaveScreen = () => {
           'QR 코드를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
           [
             { text: '취소', style: 'cancel' },
-            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) },
+            { text: 'QR 없이 인쇄', onPress: () => proceedWithDirectPrint(imageUri) },
             {
               text: '저장 후 인쇄', onPress: () => {
                 Alert.alert('안내', '먼저 앨범에 저장한 후 다시 인쇄해주세요.');
@@ -286,7 +304,7 @@ const PreviewAndSaveScreen = () => {
         return;
       }
 
-      // 합성된 이미지 또는 원본 이미지로 인쇄 (단일 이미지 방식)
+      // 합성된 이미지로 인쇄 (복잡한 방식)
       await proceedWithPrint(finalImageUri);
 
     } catch (error: any) {
@@ -301,24 +319,35 @@ const PreviewAndSaveScreen = () => {
 
   const proceedWithPrint = async (uri: string) => {
     try {
-      // 합성된 단일 이미지로 인쇄 (QR 코드가 이미 포함되어 있음)
-      await printImageSafely({
-        imageUri: uri,
-        title: '',
-        orientation: 'portrait'
+      // ViewShot으로 합성된 완성 이미지를 직접 인쇄 (원본 크기 유지)
+      await Print.printAsync({
+        uri: uri,
       });
-    } catch (error: any) {
-      if (error?.message?.includes('Printing did not complete')) {
-        // 사용자가 인쇄를 취소한 경우: 아무것도 하지 않음
-        return;
+    } catch (e: any) {
+      if (e.message === 'Printing did not complete') {
+        // 사용자가 취소한 경우: 무시하거나 안내 메시지
+      } else {
+        // 그 외 에러는 로그
+        console.error('Composed image printing error:', e);
+        Alert.alert('오류', '인쇄 중 오류가 발생했습니다.');
       }
-      console.error('Printing failed:', error);
+    }
+  };
 
-      // 추가적인 에러 핸들링
-      handlePrintError(error, uri, {
-        fallbackAction: () => proceedWithPrint(uri),
-        logError: true
+  const proceedWithDirectPrint = async (uri: string) => {
+    try {
+      // AlbumScreen과 동일한 직접 인쇄 방식 - 원본 이미지 크기 유지
+      await Print.printAsync({
+        uri: uri,
       });
+    } catch (e: any) {
+      if (e.message === 'Printing did not complete') {
+        // 사용자가 취소한 경우: 무시하거나 안내 메시지
+      } else {
+        // 그 외 에러는 로그
+        console.error('Direct printing error:', e);
+        Alert.alert('오류', '인쇄 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -591,7 +620,7 @@ const PreviewAndSaveScreen = () => {
       />
 
       {/* Hidden ViewShot for Image Composition */}
-      {includeQRCode && s3ImageUrl && (
+      {includeQRCode && s3ImageUrl && imageDimensions.width > 0 && imageDimensions.height > 0 && (
         <View style={styles.hiddenCompositionView}>
           <ViewShot
             ref={compositionViewShotRef}
@@ -599,9 +628,9 @@ const PreviewAndSaveScreen = () => {
             style={[
               styles.compositionContainer,
               calculateViewShotCompositionProps(
-                imageDimensions.width || 300,
-                imageDimensions.height || 400,
-                Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15
+                imageDimensions.width,
+                imageDimensions.height,
+                Math.min(imageDimensions.width, imageDimensions.height) * 0.15
               ).containerStyle
             ]}
           >
@@ -611,12 +640,12 @@ const PreviewAndSaveScreen = () => {
               style={[
                 styles.compositionImage,
                 calculateViewShotCompositionProps(
-                  imageDimensions.width || 300,
-                  imageDimensions.height || 400,
-                  Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15
+                  imageDimensions.width,
+                  imageDimensions.height,
+                  Math.min(imageDimensions.width, imageDimensions.height) * 0.15
                 ).imageStyle
               ]}
-              resizeMode="cover"
+              resizeMode="contain"
             />
 
             {/* QR Code Overlay */}
@@ -624,16 +653,20 @@ const PreviewAndSaveScreen = () => {
               style={[
                 styles.compositionQRContainer,
                 calculateViewShotCompositionProps(
-                  imageDimensions.width || 300,
-                  imageDimensions.height || 400,
-                  Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15,
+                  imageDimensions.width,
+                  imageDimensions.height,
+                  Math.min(imageDimensions.width, imageDimensions.height) * 0.15,
                   'bottom-right'
                 ).qrCodeStyle
               ]}
             >
               <QRCode
                 value={s3ImageUrl}
-                size={Math.min(imageDimensions.width || 300, imageDimensions.height || 400) * 0.15 - 12}
+                size={calculateViewShotCompositionProps(
+                  imageDimensions.width,
+                  imageDimensions.height,
+                  Math.min(imageDimensions.width, imageDimensions.height) * 0.15
+                ).adjustedQRSize}
                 backgroundColor="white"
                 color="black"
               />
