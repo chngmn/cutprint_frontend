@@ -19,10 +19,10 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
-import { printImageSafely, isPrintingAvailable } from '../utils/printUtils';
+import { isPrintingAvailable } from '../utils/printUtils';
 import { composeImageWithQRCode, composeImageWithProgress, CompositionProgressCallback, calculateViewShotCompositionProps } from '../utils/imageCompositionUtils';
 import { validateQRCodeValue } from '../utils/qrCodeUtils';
-import { handlePrintError, handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
+import { handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
@@ -319,24 +319,18 @@ const PreviewAndSaveScreen = () => {
 
   const proceedWithPrint = async (uri: string) => {
     try {
-      // 합성된 단일 이미지로 인쇄 (QR 코드가 이미 포함되어 있음)
-      await printImageSafely({
-        imageUri: uri,
-        title: '',
-        orientation: 'portrait'
+      // ViewShot으로 합성된 완성 이미지를 직접 인쇄 (원본 크기 유지)
+      await Print.printAsync({
+        uri: uri,
       });
-    } catch (error: any) {
-      if (error?.message?.includes('Printing did not complete')) {
-        // 사용자가 인쇄를 취소한 경우: 아무것도 하지 않음
-        return;
+    } catch (e: any) {
+      if (e.message === 'Printing did not complete') {
+        // 사용자가 취소한 경우: 무시하거나 안내 메시지
+      } else {
+        // 그 외 에러는 로그
+        console.error('Composed image printing error:', e);
+        Alert.alert('오류', '인쇄 중 오류가 발생했습니다.');
       }
-      console.error('Printing failed:', error);
-
-      // 추가적인 에러 핸들링
-      handlePrintError(error, uri, {
-        fallbackAction: () => proceedWithPrint(uri),
-        logError: true
-      });
     }
   };
 
