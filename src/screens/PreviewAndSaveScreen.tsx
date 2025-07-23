@@ -90,6 +90,14 @@ const PreviewAndSaveScreen = () => {
       }
     };
     checkPrintAvailability();
+
+    // 임시 공유 링크 생성 (QR 코드 미리보기용)
+    const generateTemporaryShareLink = () => {
+      const timestamp = Date.now();
+      const tempLink = `https://cutprint.app/temp/${timestamp}`;
+      setShareLink(tempLink);
+    };
+    generateTemporaryShareLink();
   }, []);
 
   useEffect(() => {
@@ -182,8 +190,8 @@ const PreviewAndSaveScreen = () => {
 
       let finalImageUri = imageUri;
 
-      // QR 코드 포함 옵션이 선택된 경우
-      if (includeQRCode && shareLink) {
+      // QR 코드 포함 옵션이 선택된 경우 (임시 링크가 아닌 경우에만)
+      if (includeQRCode && shareLink && !shareLink.includes('/temp/')) {
         setIsComposingImage(true);
 
         const progressCallback: CompositionProgressCallback = (progress, stage) => {
@@ -202,7 +210,7 @@ const PreviewAndSaveScreen = () => {
           finalImageUri = await composeImageWithProgress({
             originalImageUri: imageUri,
             qrCodeValue: shareLink,
-            qrCodePosition: 'bottom-right',
+            qrCodePosition: 'top-right',
             qrCodeSizeRatio: 0.1,
             outputQuality: 0.9,
             outputFormat: 'JPEG'
@@ -220,6 +228,22 @@ const PreviewAndSaveScreen = () => {
         } finally {
           setIsComposingImage(false);
         }
+      } else if (includeQRCode && shareLink && shareLink.includes('/temp/')) {
+        // 임시 링크인 경우 사용자 안내
+        Alert.alert(
+          'QR 코드 알림',
+          '실제 공유 링크를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) },
+            {
+              text: '저장 후 인쇄', onPress: () => {
+                Alert.alert('안내', '먼저 앨범에 저장한 후 다시 인쇄해주세요.');
+              }
+            }
+          ]
+        );
+        return;
       }
 
       await proceedWithPrint(finalImageUri);
@@ -295,55 +319,56 @@ const PreviewAndSaveScreen = () => {
       </View>
 
       {/* QR Code Options */}
-      {
-        <View style={styles.qrOptionsContainer}>
-          <TouchableOpacity
-            style={styles.qrToggleContainer}
-            onPress={() => setIncludeQRCode(!includeQRCode)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.qrToggleLeft}>
-              <MaterialCommunityIcons
-                name="qrcode"
-                size={20}
-                color={includeQRCode ? Colors.textPrimary : Colors.textSecondary}
-              />
-              <Text style={[
-                styles.qrToggleText,
-                { color: includeQRCode ? Colors.textPrimary : Colors.textSecondary }
-              ]}>
-                QR 코드 포함하여 인쇄
-              </Text>
-            </View>
-            <View style={[
-              styles.qrToggleSwitch,
-              { backgroundColor: includeQRCode ? Colors.textPrimary : Colors.gray300 }
+      <View style={styles.qrOptionsContainer}>
+        <TouchableOpacity
+          style={styles.qrToggleContainer}
+          onPress={() => setIncludeQRCode(!includeQRCode)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.qrToggleLeft}>
+            <MaterialCommunityIcons
+              name="qrcode"
+              size={20}
+              color={includeQRCode ? Colors.textPrimary : Colors.textSecondary}
+            />
+            <Text style={[
+              styles.qrToggleText,
+              { color: includeQRCode ? Colors.textPrimary : Colors.textSecondary }
             ]}>
-              <View style={[
-                styles.qrToggleThumb,
-                {
-                  transform: [{ translateX: includeQRCode ? 18 : 2 }],
-                  backgroundColor: Colors.white
-                }
-              ]} />
-            </View>
-          </TouchableOpacity>
+              QR 코드 포함하여 인쇄
+            </Text>
+          </View>
+          <View style={[
+            styles.qrToggleSwitch,
+            { backgroundColor: includeQRCode ? Colors.textPrimary : Colors.gray300 }
+          ]}>
+            <View style={[
+              styles.qrToggleThumb,
+              {
+                transform: [{ translateX: includeQRCode ? 18 : 2 }],
+                backgroundColor: Colors.white
+              }
+            ]} />
+          </View>
+        </TouchableOpacity>
 
-          {includeQRCode && (
-            <View style={styles.qrPreviewContainer}>
-              <QrCodeComponent
-                value={shareLink}
-                size={60}
-                backgroundColor="white"
-                color="black"
-              />
-              <Text style={styles.qrPreviewText}>
-                사진 우하단에 QR 코드가 추가됩니다
-              </Text>
-            </View>
-          )}
-        </View>
-      }
+        {includeQRCode && (
+          <View style={styles.qrPreviewContainer}>
+            <QRCode
+              value={shareLink || 'https://cutprint.app'}
+              size={60}
+              backgroundColor="white"
+              color="black"
+            />
+            <Text style={styles.qrPreviewText}>
+              {shareLink.includes('/temp/')
+                ? '사진 저장 후 실제 공유 링크로 업데이트됩니다'
+                : '사진 우하단에 QR 코드가 추가됩니다'
+              }
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Composition Progress */}
       {isComposingImage && (
