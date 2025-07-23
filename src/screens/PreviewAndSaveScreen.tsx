@@ -68,6 +68,12 @@ const PreviewAndSaveScreen = () => {
   const [photoId, setPhotoId] = useState<number | null>(null);
   const [isPrintAvailable, setIsPrintAvailable] = useState(false);
 
+  // State for tracking section heights for dynamic layout
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
+  const [qrSectionHeight, setQrSectionHeight] = useState<number>(0);
+  const [actionButtonsHeight, setActionButtonsHeight] = useState<number>(0);
+  const [availableImageSpace, setAvailableImageSpace] = useState<number>(height * 0.55);
+
   // ViewShot ref for image composition
   const compositionViewShotRef = useRef<ViewShot>(null);
 
@@ -123,10 +129,28 @@ const PreviewAndSaveScreen = () => {
     }
   }, [imageUri]);
 
-  // Calculate optimal container dimensions based on image aspect ratio
+  // Update available image space when section heights change
+  useEffect(() => {
+    const newAvailableSpace = calculateAvailableImageSpace();
+    setAvailableImageSpace(newAvailableSpace);
+  }, [headerHeight, qrSectionHeight, actionButtonsHeight, height]);
+
+  // Calculate available space for image based on measured section heights
+  const calculateAvailableImageSpace = () => {
+    const statusBarHeight = StatusBar.currentHeight || 0;
+    const safeAreaPadding = 40; // Approximate safe area padding
+    const usedSpace = statusBarHeight + safeAreaPadding + headerHeight + qrSectionHeight + actionButtonsHeight;
+    const padding = Spacing.xl * 2; // Top and bottom padding for preview container
+    const availableSpace = height - usedSpace - padding;
+
+    // Ensure minimum space (at least 200px for image)
+    return Math.max(availableSpace, 200);
+  };
+
+  // Calculate optimal container dimensions based on image aspect ratio and available space
   const getOptimalImageContainerStyle = () => {
     const maxWidth = width - (2 * Spacing.containerPadding);
-    const maxHeight = height * 0.55; // 55% of screen height for the image area
+    const maxHeight = availableImageSpace;
 
     let containerWidth = maxWidth;
     let containerHeight = maxWidth; // Default square
@@ -318,7 +342,13 @@ const PreviewAndSaveScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setHeaderHeight(height);
+        }}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -345,7 +375,13 @@ const PreviewAndSaveScreen = () => {
       </View>
 
       {/* QR Code Options */}
-      <View style={styles.qrOptionsContainer}>
+      <View
+        style={styles.qrOptionsContainer}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setQrSectionHeight(height);
+        }}
+      >
         <TouchableOpacity
           style={styles.qrToggleContainer}
           onPress={() => setIncludeQRCode(!includeQRCode)}
@@ -414,7 +450,13 @@ const PreviewAndSaveScreen = () => {
       )}
 
       {/* Action Buttons */}
-      <View style={styles.actionContainer}>
+      <View
+        style={styles.actionContainer}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setActionButtonsHeight(height);
+        }}
+      >
         <TouchableOpacity
           style={[
             styles.primaryAction,
@@ -650,11 +692,11 @@ const styles = StyleSheet.create({
 
   // Preview Section
   previewContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.containerPadding,
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.md,
+    minHeight: 200, // Ensure minimum space for image
   },
   imageFrame: {
     overflow: 'hidden',
@@ -671,7 +713,7 @@ const styles = StyleSheet.create({
   // Action Buttons
   actionContainer: {
     paddingHorizontal: Spacing.containerPadding,
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
   },
@@ -827,7 +869,7 @@ const styles = StyleSheet.create({
   // QR Code Options Styles
   qrOptionsContainer: {
     paddingHorizontal: Spacing.containerPadding,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
     backgroundColor: Colors.white,
