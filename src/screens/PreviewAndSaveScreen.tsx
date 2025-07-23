@@ -17,6 +17,11 @@ import {
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import QRCode from 'react-native-qrcode-svg';
+import { printImageSafely, isPrintingAvailable } from '../utils/printUtils';
+import { composeImageWithQRCode, composeImageWithProgress, CompositionProgressCallback } from '../utils/imageCompositionUtils';
+import { validateQRCodeValue } from '../utils/qrCodeUtils';
+import { handlePrintError, handleQRCodeError, handleImageCompositionError, checkSystemResources } from '../utils/errorHandlingUtils';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
@@ -54,6 +59,13 @@ const PreviewAndSaveScreen = () => {
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [photoVisibility, setPhotoVisibility] = useState<PhotoVisibility>('ALL_FRIENDS');
   const [showPermissionSelector, setShowPermissionSelector] = useState(false);
+  const [includeQRCode, setIncludeQRCode] = useState(false);
+  const [isComposingImage, setIsComposingImage] = useState(false);
+  const [compositionProgress, setCompositionProgress] = useState(0);
+  const [compositionStage, setCompositionStage] = useState('');
+  const [shareLink, setShareLink] = useState<string>('');
+  const [photoId, setPhotoId] = useState<number | null>(null);
+  const [isPrintAvailable, setIsPrintAvailable] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -65,6 +77,19 @@ const PreviewAndSaveScreen = () => {
       }
     };
     fetchFriends();
+
+    // 인쇄 기능 사용 가능 여부 확인
+    const checkPrintAvailability = async () => {
+      const available = await isPrintingAvailable();
+      setIsPrintAvailable(available);
+
+      // 시스템 리소스 체크
+      const resources = await checkSystemResources();
+      if (resources.memoryWarning || resources.storageWarning) {
+        console.warn('System resource warning:', resources);
+      }
+    };
+    checkPrintAvailability();
   }, []);
 
   useEffect(() => {
@@ -124,7 +149,20 @@ const PreviewAndSaveScreen = () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      await apiService.uploadPhoto(base64, selectedFriends, photoVisibility);
+      const result = await apiService.uploadPhoto(base64, selectedFriends, photoVisibility);
+
+      // 업로드 후 photo ID 저장
+      if (result && result.id) {
+        setPhotoId(result.id);
+
+        // 공유 링크 생성
+        try {
+          const linkResponse = await apiService.getPhotoShareLink(result.id);
+          setShareLink(linkResponse.shareLink);
+        } catch (linkError) {
+          console.warn('공유 링크 생성 실패:', linkError);
+        }
+      }
 
       // @ts-ignore
       navigation.navigate('Main', { screen: 'Album', params: { newImageUri: imageUri, frameType: cutType, refresh: true, friends: selectedFriends } });
@@ -137,19 +175,76 @@ const PreviewAndSaveScreen = () => {
 
   const printImage = async () => {
     try {
-      await Print.printAsync({
-        uri: imageUri,
-      });
-    } catch (error: any) {
-      if (
-        error.message &&
-        error.message.includes('Printing did not complete')
-      ) {
-        console.log('Printing was cancelled by the user.');
-      } else {
-        console.error('Error printing image:', error);
-        Alert.alert('오류', '인쇄 중 오류가 발생했습니다.');
+      if (!isPrintAvailable) {
+        Alert.alert('인쇄 불가', '현재 기기에서는 인쇄 기능을 사용할 수 없습니다.');
+        return;
       }
+
+      let finalImageUri = imageUri;
+
+      // QR 코드 포함 옵션이 선택된 경우
+      if (includeQRCode && shareLink) {
+        setIsComposingImage(true);
+
+        const progressCallback: CompositionProgressCallback = (progress, stage) => {
+          setCompositionProgress(progress);
+          setCompositionStage(stage);
+        };
+
+        try {
+          // QR 코드 값 유효성 검증
+          const validation = validateQRCodeValue(shareLink);
+          if (!validation.isValid) {
+            throw new Error(validation.error);
+          }
+
+          // 이미지에 QR 코드 합성
+          finalImageUri = await composeImageWithProgress({
+            originalImageUri: imageUri,
+            qrCodeValue: shareLink,
+            qrCodePosition: 'bottom-right',
+            qrCodeSizeRatio: 0.1,
+            outputQuality: 0.9,
+            outputFormat: 'JPEG'
+          }, progressCallback);
+
+        } catch (compositionError) {
+          console.error('QR 코드 합성 실패:', compositionError);
+
+          // 개선된 에러 핸들링
+          handleImageCompositionError(compositionError, {
+            fallbackAction: () => proceedWithPrint(imageUri),
+            logError: true
+          });
+          return;
+        } finally {
+          setIsComposingImage(false);
+        }
+      }
+
+      await proceedWithPrint(finalImageUri);
+
+    } catch (error: any) {
+      console.error('Print preparation error:', error);
+      Alert.alert('오류', '인쇄 준비 중 오류가 발생했습니다.');
+    }
+  };
+
+  const proceedWithPrint = async (uri: string) => {
+    try {
+      await printImageSafely({
+        imageUri: uri,
+        title: 'Cutprint Photo',
+        orientation: 'portrait'
+      });
+    } catch (error) {
+      console.error('Printing failed:', error);
+
+      // 추가적인 에러 핸들링
+      handlePrintError(error, uri, {
+        fallbackAction: () => proceedWithPrint(uri),
+        logError: true
+      });
     }
   };
 
@@ -165,6 +260,8 @@ const PreviewAndSaveScreen = () => {
       Alert.alert('오류', '공유하는 중 오류가 발생했습니다.');
     }
   };
+
+  const QrCodeComponent = QRCode as any;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -197,29 +294,113 @@ const PreviewAndSaveScreen = () => {
         </View>
       </View>
 
+      {/* QR Code Options */}
+      {
+        <View style={styles.qrOptionsContainer}>
+          <TouchableOpacity
+            style={styles.qrToggleContainer}
+            onPress={() => setIncludeQRCode(!includeQRCode)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.qrToggleLeft}>
+              <MaterialCommunityIcons
+                name="qrcode"
+                size={20}
+                color={includeQRCode ? Colors.textPrimary : Colors.textSecondary}
+              />
+              <Text style={[
+                styles.qrToggleText,
+                { color: includeQRCode ? Colors.textPrimary : Colors.textSecondary }
+              ]}>
+                QR 코드 포함하여 인쇄
+              </Text>
+            </View>
+            <View style={[
+              styles.qrToggleSwitch,
+              { backgroundColor: includeQRCode ? Colors.textPrimary : Colors.gray300 }
+            ]}>
+              <View style={[
+                styles.qrToggleThumb,
+                {
+                  transform: [{ translateX: includeQRCode ? 18 : 2 }],
+                  backgroundColor: Colors.white
+                }
+              ]} />
+            </View>
+          </TouchableOpacity>
+
+          {includeQRCode && (
+            <View style={styles.qrPreviewContainer}>
+              <QrCodeComponent
+                value={shareLink}
+                size={60}
+                backgroundColor="white"
+                color="black"
+              />
+              <Text style={styles.qrPreviewText}>
+                사진 우하단에 QR 코드가 추가됩니다
+              </Text>
+            </View>
+          )}
+        </View>
+      }
+
+      {/* Composition Progress */}
+      {isComposingImage && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${compositionProgress}%` }
+              ]}
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {compositionStage} ({Math.round(compositionProgress)}%)
+          </Text>
+        </View>
+      )}
+
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.primaryAction} onPress={saveToAlbum}>
+        <TouchableOpacity
+          style={[
+            styles.primaryAction,
+            { opacity: isComposingImage ? 0.5 : 1 }
+          ]}
+          onPress={saveToAlbum}
+          disabled={isComposingImage}
+        >
           <Ionicons name="download" size={24} color={Colors.white} />
           <Text style={styles.primaryActionText}>앱 앨범에 저장</Text>
         </TouchableOpacity>
 
         <View style={styles.secondaryActions}>
-          <TouchableOpacity 
-            style={styles.secondaryAction} 
+          <TouchableOpacity
+            style={styles.secondaryAction}
             onPress={() => setShowPermissionSelector(true)}
           >
-            <MaterialCommunityIcons 
-              name={photoVisibility === 'PRIVATE' ? 'lock' : photoVisibility === 'CLOSE_FRIENDS' ? 'star' : 'account-group'} 
-              size={20} 
-              color={Colors.textPrimary} 
+            <MaterialCommunityIcons
+              name={photoVisibility === 'PRIVATE' ? 'lock' : photoVisibility === 'CLOSE_FRIENDS' ? 'star' : 'account-group'}
+              size={20}
+              color={Colors.textPrimary}
             />
             <Text style={styles.secondaryActionText}>공개 설정</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryAction} onPress={printImage}>
+          <TouchableOpacity
+            style={[
+              styles.secondaryAction,
+              { opacity: (isComposingImage || !isPrintAvailable) ? 0.5 : 1 }
+            ]}
+            onPress={printImage}
+            disabled={isComposingImage || !isPrintAvailable}
+          >
             <Ionicons name="print-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.secondaryActionText}>출력</Text>
+            <Text style={styles.secondaryActionText}>
+              {isPrintAvailable ? '출력' : '인쇄불가'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryAction} onPress={shareToInstagramStory}>
@@ -538,6 +719,82 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
+  },
+
+  // QR Code Options Styles
+  qrOptionsContainer: {
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+    backgroundColor: Colors.white,
+  },
+  qrToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+  },
+  qrToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  qrToggleText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    marginLeft: Spacing.sm,
+  },
+  qrToggleSwitch: {
+    width: 40,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  qrToggleThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    position: 'absolute',
+  },
+  qrPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  qrPreviewText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.md,
+    flex: 1,
+  },
+
+  // Progress Styles
+  progressContainer: {
+    paddingHorizontal: Spacing.containerPadding,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.gray50,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: Colors.gray200,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.textPrimary,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
   },
 });
 

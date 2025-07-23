@@ -149,6 +149,11 @@ class ApiService {
     });
   }
 
+  // 사진 공유 링크 가져오기
+  async getPhotoShareLink(photoId: number): Promise<{ shareLink: string }> {
+    return this.makeRequest(`/photos/${photoId}/share-link`);
+  }
+
   // 사용자 온라인 상태 확인
   async isUserOnline(userId: number): Promise<{ online: boolean; reason?: string }> {
     return this.makeRequest(`/auth/online/${userId}`);
