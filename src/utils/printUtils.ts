@@ -136,6 +136,14 @@ const generatePrintHTML = (options: HTMLTemplateOptions): string => {
     orientation
   } = options;
 
+  // 디버깅: QR 코드 전달 상태 로깅
+  console.log('Print HTML generation:', {
+    hasImage: !!base64Image,
+    hasQRCode: !!base64QRCode,
+    qrCodeSize,
+    qrCodePosition
+  });
+
   // QR 코드 위치 CSS 계산
   const qrPosition = getQRPositionCSS(qrCodePosition, qrCodeSize);
   
@@ -190,10 +198,12 @@ const generatePrintHTML = (options: HTMLTemplateOptions): string => {
                 width: ${qrCodeSize}px;
                 height: ${qrCodeSize}px;
                 ${qrPosition}
-                background: rgba(255, 255, 255, 0.9);
-                border-radius: 4px;
-                padding: 4px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 6px;
+                padding: 6px;
+                box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+                z-index: 10;
+                border: 2px solid rgba(255, 255, 255, 0.8);
             }
             
             .qr-code img {
@@ -231,10 +241,11 @@ const generatePrintHTML = (options: HTMLTemplateOptions): string => {
             <img src="${base64Image}" alt="Photo" class="main-image" />
             
             ${base64QRCode ? `
+                <!-- QR Code Present: ${base64QRCode.substring(0, 50)}... -->
                 <div class="qr-code">
                     <img src="${base64QRCode}" alt="QR Code" />
                 </div>
-            ` : ''}
+            ` : '<!-- No QR Code provided -->'}
             
             <div class="title">${title}</div>
         </div>

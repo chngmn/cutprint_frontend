@@ -188,16 +188,13 @@ const PreviewAndSaveScreen = () => {
         return;
       }
 
-      let finalImageUri = imageUri;
+      let qrCodeUri: string | undefined = undefined;
 
-      // QR 코드 포함 옵션이 선택된 경우 (임시 링크가 아닌 경우에만)
+      // QR 코드 포함 옵션이 선택된 경우
       if (includeQRCode && shareLink && !shareLink.includes('/temp/')) {
         setIsComposingImage(true);
-
-        const progressCallback: CompositionProgressCallback = (progress, stage) => {
-          setCompositionProgress(progress);
-          setCompositionStage(stage);
-        };
+        setCompositionStage('QR 코드 생성 중...');
+        setCompositionProgress(50);
 
         try {
           // QR 코드 값 유효성 검증
@@ -206,24 +203,32 @@ const PreviewAndSaveScreen = () => {
             throw new Error(validation.error);
           }
 
-          // 이미지에 QR 코드 합성
-          finalImageUri = await composeImageWithProgress({
-            originalImageUri: imageUri,
-            qrCodeValue: shareLink,
-            qrCodePosition: 'top-right',
-            qrCodeSizeRatio: 0.1,
-            outputQuality: 0.9,
-            outputFormat: 'JPEG'
-          }, progressCallback);
-
-        } catch (compositionError) {
-          console.error('QR 코드 합성 실패:', compositionError);
-
-          // 개선된 에러 핸들링
-          handleImageCompositionError(compositionError, {
-            fallbackAction: () => proceedWithPrint(imageUri),
-            logError: true
+          // QR 코드를 별도로 생성 (이미지 합성 대신 HTML 오버레이 방식)
+          const { generateQRCodeBase64 } = require('../utils/qrCodeUtils');
+          const qrSize = Math.min(imageDimensions.width, imageDimensions.height) * 0.15; // 15% 크기
+          
+          qrCodeUri = await generateQRCodeBase64({
+            value: shareLink,
+            size: qrSize,
+            backgroundColor: 'white',
+            color: 'black'
           });
+          
+          setCompositionProgress(100);
+          setCompositionStage('완료');
+
+        } catch (qrError) {
+          console.error('QR 코드 생성 실패:', qrError);
+
+          // QR 코드 생성 실패 시 사용자에게 선택권 제공
+          Alert.alert(
+            'QR 코드 생성 오류',
+            'QR 코드를 생성할 수 없습니다. QR 코드 없이 인쇄하시겠습니까?',
+            [
+              { text: '취소', style: 'cancel' },
+              { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri, undefined) }
+            ]
+          );
           return;
         } finally {
           setIsComposingImage(false);
@@ -235,7 +240,7 @@ const PreviewAndSaveScreen = () => {
           '실제 공유 링크를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
           [
             { text: '취소', style: 'cancel' },
-            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri) },
+            { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri, undefined) },
             {
               text: '저장 후 인쇄', onPress: () => {
                 Alert.alert('안내', '먼저 앨범에 저장한 후 다시 인쇄해주세요.');
@@ -246,7 +251,8 @@ const PreviewAndSaveScreen = () => {
         return;
       }
 
-      await proceedWithPrint(finalImageUri);
+      // 원본 이미지와 별도 QR 코드로 인쇄 (HTML 오버레이 방식)
+      await proceedWithPrint(imageUri, qrCodeUri);
 
     } catch (error: any) {
       console.error('Print preparation error:', error);
@@ -254,10 +260,13 @@ const PreviewAndSaveScreen = () => {
     }
   };
 
-  const proceedWithPrint = async (uri: string) => {
+  const proceedWithPrint = async (uri: string, qrCodeUri?: string) => {
     try {
       await printImageSafely({
         imageUri: uri,
+        qrCodeUri: qrCodeUri,
+        qrCodePosition: 'top-right',
+        qrCodeSize: 80,
         title: 'Cutprint Photo',
         orientation: 'portrait'
       });
@@ -266,7 +275,7 @@ const PreviewAndSaveScreen = () => {
 
       // 추가적인 에러 핸들링
       handlePrintError(error, uri, {
-        fallbackAction: () => proceedWithPrint(uri),
+        fallbackAction: () => proceedWithPrint(uri, qrCodeUri),
         logError: true
       });
     }
