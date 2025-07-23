@@ -56,7 +56,11 @@ export const printImageSafely = async (options: PrintImageOptions): Promise<void
       ...printOptions
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    // 'Printing did not complete' 메시지가 포함된 경우 로그를 남기지 않고 조용히 종료
+    if (error?.message?.includes('Printing did not complete')) {
+      return;
+    }
     console.error('Print error:', error);
     
     // iOS 특화 에러 처리

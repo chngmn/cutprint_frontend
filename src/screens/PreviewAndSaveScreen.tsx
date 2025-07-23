@@ -185,7 +185,7 @@ const PreviewAndSaveScreen = () => {
   // ViewShot을 사용한 이미지 합성 함수
   const composeImageWithViewShot = async (): Promise<string> => {
     try {
-      if (!compositionViewShotRef.current) {
+      if (!compositionViewShotRef.current || !compositionViewShotRef.current.capture) {
         throw new Error('ViewShot ref not available');
       }
 
@@ -266,6 +266,10 @@ const PreviewAndSaveScreen = () => {
       await proceedWithPrint(finalImageUri);
 
     } catch (error: any) {
+      if (error?.message?.includes('Printing did not complete')) {
+        // 사용자가 인쇄를 취소한 경우: 아무것도 하지 않음
+        return;
+      }
       console.error('Print preparation error:', error);
       Alert.alert('오류', '인쇄 준비 중 오류가 발생했습니다.');
     }
@@ -279,7 +283,11 @@ const PreviewAndSaveScreen = () => {
         title: 'Cutprint Photo',
         orientation: 'portrait'
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes('Printing did not complete')) {
+        // 사용자가 인쇄를 취소한 경우: 아무것도 하지 않음
+        return;
+      }
       console.error('Printing failed:', error);
 
       // 추가적인 에러 핸들링
