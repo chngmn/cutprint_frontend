@@ -63,7 +63,7 @@ const PreviewAndSaveScreen = () => {
   const [isComposingImage, setIsComposingImage] = useState(false);
   const [compositionProgress, setCompositionProgress] = useState(0);
   const [compositionStage, setCompositionStage] = useState('');
-  const [shareLink, setShareLink] = useState<string>('');
+  const [s3ImageUrl, setS3ImageUrl] = useState<string>('');
   const [photoId, setPhotoId] = useState<number | null>(null);
   const [isPrintAvailable, setIsPrintAvailable] = useState(false);
 
@@ -92,12 +92,12 @@ const PreviewAndSaveScreen = () => {
     checkPrintAvailability();
 
     // 임시 공유 링크 생성 (QR 코드 미리보기용)
-    const generateTemporaryShareLink = () => {
-      const timestamp = Date.now();
-      const tempLink = `https://cutprint.app/temp/${timestamp}`;
-      setShareLink(tempLink);
-    };
-    generateTemporaryShareLink();
+    // const generateTemporaryShareLink = () => {
+    //   const timestamp = Date.now();
+    //   const tempLink = `https://cutprint.app/temp/${timestamp}`;
+    //   setShareLink(tempLink);
+    // };
+    // generateTemporaryShareLink();
   }, []);
 
   useEffect(() => {
@@ -159,16 +159,13 @@ const PreviewAndSaveScreen = () => {
 
       const result = await apiService.uploadPhoto(base64, selectedFriends, photoVisibility);
 
-      // 업로드 후 photo ID 저장
+      // 업로드 후 photo ID와 S3 URL 저장
       if (result && result.id) {
         setPhotoId(result.id);
-
-        // 공유 링크 생성
-        try {
-          const linkResponse = await apiService.getPhotoShareLink(result.id);
-          setShareLink(linkResponse.shareLink);
-        } catch (linkError) {
-          console.warn('공유 링크 생성 실패:', linkError);
+        
+        // S3 URL 직접 사용 (QR 코드에 S3 객체 URL 포함)
+        if (result.url) {
+          setS3ImageUrl(result.url);
         }
       }
 
@@ -191,24 +188,24 @@ const PreviewAndSaveScreen = () => {
       let qrCodeUri: string | undefined = undefined;
 
       // QR 코드 포함 옵션이 선택된 경우
-      if (includeQRCode && shareLink && !shareLink.includes('/temp/')) {
+      if (includeQRCode && s3ImageUrl) {
         setIsComposingImage(true);
         setCompositionStage('QR 코드 생성 중...');
         setCompositionProgress(50);
 
         try {
-          // QR 코드 값 유효성 검증
-          const validation = validateQRCodeValue(shareLink);
+          // QR 코드 값 유효성 검증 (S3 URL 사용)
+          const validation = validateQRCodeValue(s3ImageUrl);
           if (!validation.isValid) {
             throw new Error(validation.error);
           }
 
-          // QR 코드를 별도로 생성 (이미지 합성 대신 HTML 오버레이 방식)
+          // QR 코드를 별도로 생성 (S3 객체 URL 사용)
           const { generateQRCodeBase64 } = require('../utils/qrCodeUtils');
           const qrSize = Math.min(imageDimensions.width, imageDimensions.height) * 0.15; // 15% 크기
           
           qrCodeUri = await generateQRCodeBase64({
-            value: shareLink,
+            value: s3ImageUrl,
             size: qrSize,
             backgroundColor: 'white',
             color: 'black'
@@ -233,11 +230,11 @@ const PreviewAndSaveScreen = () => {
         } finally {
           setIsComposingImage(false);
         }
-      } else if (includeQRCode && shareLink && shareLink.includes('/temp/')) {
-        // 임시 링크인 경우 사용자 안내
+      } else if (includeQRCode && !s3ImageUrl) {
+        // S3 URL이 없는 경우 사용자 안내
         Alert.alert(
           'QR 코드 알림',
-          '실제 공유 링크를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
+          'QR 코드를 생성하려면 먼저 "앱 앨범에 저장"을 눌러주세요. 계속 인쇄하시겠습니까?',
           [
             { text: '취소', style: 'cancel' },
             { text: 'QR 없이 인쇄', onPress: () => proceedWithPrint(imageUri, undefined) },
@@ -364,15 +361,15 @@ const PreviewAndSaveScreen = () => {
         {includeQRCode && (
           <View style={styles.qrPreviewContainer}>
             <QRCode
-              value={shareLink || 'https://cutprint.app'}
+              value={s3ImageUrl || 'https://cutprint.app'}
               size={60}
               backgroundColor="white"
               color="black"
             />
             <Text style={styles.qrPreviewText}>
-              {shareLink.includes('/temp/')
-                ? '사진 저장 후 실제 공유 링크로 업데이트됩니다'
-                : '사진 우하단에 QR 코드가 추가됩니다'
+              {!s3ImageUrl
+                ? '사진 저장 후 S3 URL로 업데이트됩니다'
+                : '사진 우하단에 S3 이미지 URL QR 코드가 추가됩니다'
               }
             </Text>
           </View>
