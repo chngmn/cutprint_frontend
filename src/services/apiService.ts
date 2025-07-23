@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.249.27.125:3000'; // 실제 서버 주소로 변경 필요
+const API_BASE_URL = 'http://3.37.74.201:3000'; // 실제 서버 주소로 변경 필요
 
 class ApiService {
   private async getAuthToken(): Promise<string | null> {
@@ -147,6 +147,11 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ visibility }),
     });
+  }
+
+  // 사진 공유 링크 가져오기
+  async getPhotoShareLink(photoId: number): Promise<{ shareLink: string }> {
+    return this.makeRequest(`/photos/${photoId}/share-link`);
   }
 
   // 사용자 온라인 상태 확인
