@@ -166,7 +166,7 @@ const PreviewAndSaveScreen = () => {
       // 업로드 후 photo ID와 S3 URL 저장
       if (result && result.id) {
         setPhotoId(result.id);
-        
+
         // S3 URL 직접 사용 (QR 코드에 S3 객체 URL 포함)
         if (result.url) {
           setS3ImageUrl(result.url);
@@ -195,10 +195,10 @@ const PreviewAndSaveScreen = () => {
 
       // ViewShot으로 합성된 이미지 캡처
       const capturedUri = await compositionViewShotRef.current.capture();
-      
+
       setCompositionProgress(100);
       setCompositionStage('완료');
-      
+
       return capturedUri;
     } catch (error) {
       console.error('ViewShot composition error:', error);
@@ -280,7 +280,7 @@ const PreviewAndSaveScreen = () => {
       // 합성된 단일 이미지로 인쇄 (QR 코드가 이미 포함되어 있음)
       await printImageSafely({
         imageUri: uri,
-        title: 'Cutprint Photo',
+        title: '',
         orientation: 'portrait'
       });
     } catch (error: any) {
@@ -576,7 +576,7 @@ const PreviewAndSaveScreen = () => {
               ]}
               resizeMode="cover"
             />
-            
+
             {/* QR Code Overlay */}
             <View
               style={[
